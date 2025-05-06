@@ -2,22 +2,22 @@
 import React, { useState } from 'react';
 
 const Login = () => {
-  const [isRegistering, setIsRegistering] = useState(false); // Estado para cambiar entre Iniciar sesión y Registrarse
-
-  const handleToggle = () => {
-    setIsRegistering(!isRegistering); // Cambia el estado
-  };
+  const [isRegistering, setIsRegistering] = useState(false);
+  const handleToggle = () => setIsRegistering(!isRegistering);
 
   return (
-    // Aquí es donde se coloca el fondo de pantalla
-    <div 
-      className="flex justify-center items-center min-h-screen bg-cover bg-center" 
-      style={{ backgroundImage: "url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQk5TJmNK7j4Gt1zB-7AIEuKjvyjtT9Ek1YoA&s')" }} // Asegúrate de cambiar la ruta de la imagen a la que prefieras
+    <div
+      className="flex justify-center items-center min-h-screen bg-cover bg-center"
+      style={{ backgroundImage: "url('/IPASA%20LOGO.jpeg')" }}
     >
-      <div className="bg-white p-8 rounded-md shadow-md w-80">
-        <h2 className="text-2xl font-bold text-center mb-6">{isRegistering ? 'Registrar Usuario' : 'Iniciar Sesión'}</h2>
+      <div className="bg-white bg-opacity-90 p-8 rounded-xl shadow-lg w-80">
+        <div className="flex justify-center mb-4">
+          <img src="/descarga-removebg-preview.png" alt="IPASA Logo" className="h-12" />
+        </div>
+        <h2 className="text-2xl font-bold text-center mb-6">
+          {isRegistering ? 'Registrar Usuario' : 'Iniciar Sesión'}
+        </h2>
 
-        {/* Formulario de Login */}
         {!isRegistering ? (
           <form>
             <div className="mb-4">
@@ -34,15 +34,17 @@ const Login = () => {
                 className="w-full p-2 border border-gray-300 rounded"
               />
             </div>
-            <div className="mb-4 text-center">
-              <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded">Iniciar Sesión</button>
-            </div>
-            <div className="text-center">
-              <button type="button" className="text-blue-500" onClick={handleToggle}>¿No tienes cuenta? Regístrate</button>
-            </div>
+            <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded mb-4">
+              Iniciar Sesión
+            </button>
+            <p className="text-center">
+              ¿No tienes cuenta?{' '}
+              <button type="button" className="text-blue-500 underline" onClick={handleToggle}>
+                Regístrate
+              </button>
+            </p>
           </form>
         ) : (
-          // Formulario de Registro
           <form>
             <div className="mb-4">
               <input
@@ -86,12 +88,15 @@ const Login = () => {
                 <option value="user">Usuario</option>
               </select>
             </div>
-            <div className="mb-4 text-center">
-              <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded">Registrar</button>
-            </div>
-            <div className="text-center">
-              <button type="button" className="text-blue-500" onClick={handleToggle}>¿Ya tienes cuenta? Inicia sesión</button>
-            </div>
+            <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded mb-4">
+              Registrarse
+            </button>
+            <p className="text-center">
+              ¿Ya tienes cuenta?{' '}
+              <button type="button" className="text-blue-500 underline" onClick={handleToggle}>
+                Inicia Sesión
+              </button>
+            </p>
           </form>
         )}
       </div>
