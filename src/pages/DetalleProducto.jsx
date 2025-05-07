@@ -4,9 +4,9 @@ import { useParams, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 const productos = [
-  { id: 1, nombre: 'Portón', precio: 1699, imagen: '/descarga-removebg-preview.png', alto: '85 cm', ancho: '60 cm', profundidad: '65 cm' },
-  { id: 2, nombre: 'Lamina', precio: 2099, imagen: '/descarga-removebg-preview.png', alto: '170 cm', ancho: '70 cm', profundidad: '60 cm' },
-  { id: 3, nombre: 'Tubos', precio: 899, imagen: '/descarga-removebg-preview.png', alto: '95 cm', ancho: '60 cm', profundidad: '60 cm' },
+  { id: 1, nombre: 'Portón', precio: 1699, imagen: 'https://prosafetyperu.com/wp-content/uploads/2022/06/a2004dc1afb22fbd9933c9ca75ca4fb1-300x188.jpg', alto: '85 cm', ancho: '60 cm', profundidad: '65 cm' },
+  { id: 2, nombre: 'Lamina', precio: 2099, imagen: 'https://aceroscrea.com/wp-content/uploads/2025/03/hero-lamina-de-acero.png', alto: '170 cm', ancho: '70 cm', profundidad: '60 cm' },
+  { id: 3, nombre: 'Tubos', precio: 899, imagen: 'https://tectul.com/rails/active_storage/representations/proxy/eyJfcmFpbHMiOnsiZGF0YSI6OTQ3NzY5LCJwdXIiOiJibG9iX2lkIn19--f36b3127f623b41b7f5410d64f6f7103227e7924/eyJfcmFpbHMiOnsiZGF0YSI6eyJmb3JtYXQiOiJqcGciLCJyZXNpemVfdG9fZml0IjpbODAwLDgwMF19LCJwdXIiOiJ2YXJpYXRpb24ifX0=--1420d7fd3d20057726f0ef3c0043db24ca0403be/PERFILERIA%20ESTRUCTURAL%20INOXIDABLE.jpg?locale=es', alto: '95 cm', ancho: '60 cm', profundidad: '60 cm' },
 ];
 
 const DetalleProducto = () => {
