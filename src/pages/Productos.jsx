@@ -1,7 +1,6 @@
 // src/pages/Productos.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 
 const productos = [
   { id: 1, nombre: 'Portón', precio: 1699, imagen: 'https://prosafetyperu.com/wp-content/uploads/2022/06/a2004dc1afb22fbd9933c9ca75ca4fb1-300x188.jpg' },
@@ -10,28 +9,32 @@ const productos = [
 ];
 
 const Productos = () => {
+  const role = localStorage.getItem('role');
+
   return (
-    <div>
-      <Navbar />
-      <div className="max-w-7xl mx-auto p-4">
-        <h1 className="text-3xl font-bold mb-6">Nuestros Productos</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {productos.map((producto) => (
-            <div key={producto.id} className="border rounded-lg overflow-hidden shadow hover:shadow-lg transition">
-              <img src={producto.imagen} alt={producto.nombre} className="w-full h-48 object-cover" />
-              <div className="p-4">
-                <h2 className="text-lg font-semibold">{producto.nombre}</h2>
-                <p className="text-gray-700">S/ {producto.precio}</p>
-                <Link
-                  to={`/productos/${producto.id}`}
-                  className="mt-2 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                >
-                  Ver Detalle
-                </Link>
-              </div>
+    <div className="max-w-7xl mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6">Nuestros Productos</h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {productos.map((producto) => (
+          <div key={producto.id} className="border rounded-lg overflow-hidden shadow hover:shadow-lg transition">
+            <img src={producto.imagen} alt={producto.nombre} className="w-full h-48 object-cover" />
+            <div className="p-4">
+              <h2 className="text-lg font-semibold">{producto.nombre}</h2>
+              <p className="text-gray-700">S/ {producto.precio}</p>
+              <Link
+                to={`/productos/${producto.id}`}
+                className="mt-2 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              >
+                Ver Detalle
+              </Link>
+              {role === 'cliente' && (
+                <button className="mt-2 w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                  Añadir al carrito
+                </button>
+              )}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );

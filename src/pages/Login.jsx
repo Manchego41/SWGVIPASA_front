@@ -1,105 +1,71 @@
-// src/pages/Login.jsx
 import React, { useState } from 'react';
+import axios from 'axios';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Login = () => {
-  const [isRegistering, setIsRegistering] = useState(false);
-  const handleToggle = () => setIsRegistering(!isRegistering);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [msg, setMsg] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
+      localStorage.setItem('token', res.data.token);
+      localStorage.setItem('role', res.data.role);
+      setMsg('');
+
+      if (res.data.role === 'administrador') {
+        navigate('/admin');
+      } else if (res.data.role === 'vendedor') {
+        navigate('/vendedor');
+      } else {
+        navigate('/');
+      }
+    } catch (error) {
+      setMsg(error.response?.data?.message || 'Error al iniciar sesión');
+    }
+  };
 
   return (
-    <div
-      className="flex justify-center items-center min-h-screen bg-cover bg-center"
-      style={{ backgroundImage: "url('/IPASA%20LOGO.jpeg')" }}
-    >
-      <div className="bg-white bg-opacity-90 p-8 rounded-xl shadow-lg w-80">
-        <div className="flex justify-center mb-4">
-          <img src="/descarga-removebg-preview.png" alt="IPASA Logo" className="h-12" />
-        </div>
-        <h2 className="text-2xl font-bold text-center mb-6">
-          {isRegistering ? 'Registrar Usuario' : 'Iniciar Sesión'}
-        </h2>
+    <div className="flex justify-center items-center h-screen bg-gray-100">
+      <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow-md w-full max-w-sm">
+        <h2 className="text-2xl font-bold mb-6 text-center">Iniciar Sesión</h2>
 
-        {!isRegistering ? (
-          <form>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Usuario"
-                className="w-full p-2 border border-gray-300 rounded"
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="password"
-                placeholder="Contraseña"
-                className="w-full p-2 border border-gray-300 rounded"
-              />
-            </div>
-            <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded mb-4">
-              Iniciar Sesión
-            </button>
-            <p className="text-center">
-              ¿No tienes cuenta?{' '}
-              <button type="button" className="text-blue-500 underline" onClick={handleToggle}>
-                Regístrate
-              </button>
-            </p>
-          </form>
-        ) : (
-          <form>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Nombre Completo"
-                className="w-full p-2 border border-gray-300 rounded"
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Nombre de Usuario"
-                className="w-full p-2 border border-gray-300 rounded"
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="email"
-                placeholder="Correo Electrónico"
-                className="w-full p-2 border border-gray-300 rounded"
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="password"
-                placeholder="Contraseña"
-                className="w-full p-2 border border-gray-300 rounded"
-              />
-            </div>
-            <div className="mb-4">
-              <input
-                type="password"
-                placeholder="Confirmar Contraseña"
-                className="w-full p-2 border border-gray-300 rounded"
-              />
-            </div>
-            <div className="mb-4">
-              <select className="w-full p-2 border border-gray-300 rounded">
-                <option value="">Seleccionar Cargo</option>
-                <option value="admin">Administrador</option>
-                <option value="user">Usuario</option>
-              </select>
-            </div>
-            <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded mb-4">
-              Registrarse
-            </button>
-            <p className="text-center">
-              ¿Ya tienes cuenta?{' '}
-              <button type="button" className="text-blue-500 underline" onClick={handleToggle}>
-                Inicia Sesión
-              </button>
-            </p>
-          </form>
-        )}
-      </div>
+        {msg && <p className="mb-4 text-sm text-red-600 text-center">{msg}</p>}
+
+        <input
+          type="email"
+          placeholder="Correo electrónico"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="w-full border border-gray-300 p-2 rounded mb-4"
+        />
+
+        <input
+          type="password"
+          placeholder="Contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="w-full border border-gray-300 p-2 rounded mb-4"
+        />
+
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+        >
+          Ingresar
+        </button>
+
+        <div className="mt-4 text-center">
+          <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+      </form>
     </div>
   );
 };
