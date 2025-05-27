@@ -29,8 +29,14 @@ const Login = () => {
   };
 
   return (
-    <div className="flex justify-center items-center h-screen bg-gray-100">
-      <form onSubmit={handleLogin} className="bg-white p-8 rounded shadow-md w-full max-w-sm">
+    <div
+      className="flex justify-center items-center h-screen bg-cover bg-center"
+      style={{ backgroundImage: "url('/IPASA LOGO.jpeg')" }}
+    >
+      <form
+        onSubmit={handleLogin}
+        className="bg-white bg-opacity-90 backdrop-blur-md p-8 rounded-lg shadow-lg w-full max-w-sm"
+      >
         <h2 className="text-2xl font-bold mb-6 text-center">Iniciar Sesión</h2>
 
         {msg && <p className="mb-4 text-sm text-red-600 text-center">{msg}</p>}
