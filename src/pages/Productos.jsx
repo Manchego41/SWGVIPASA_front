@@ -1,38 +1,68 @@
 // src/pages/Productos.jsx
-import React from 'react';
-import { Link } from 'react-router-dom';
-
-const productos = [
-  { id: 1, nombre: 'Portón', precio: 1699, imagen: 'https://prosafetyperu.com/wp-content/uploads/2022/06/a2004dc1afb22fbd9933c9ca75ca4fb1-300x188.jpg' },
-  { id: 2, nombre: 'Lamina', precio: 2099, imagen: 'https://aceroscrea.com/wp-content/uploads/2025/03/hero-lamina-de-acero.png' },
-  { id: 3, nombre: 'Tubos', precio: 899, imagen: 'https://tectul.com/rails/active_storage/representations/proxy/eyJfcmFpbHMiOnsiZGF0YSI6OTQ3NzY5LCJwdXIiOiJibG9iX2lkIn19--f36b3127f623b41b7f5410d64f6f7103227e7924/eyJfcmFpbHMiOnsiZGF0YSI6eyJmb3JtYXQiOiJqcGciLCJyZXNpemVfdG9fZml0IjpbODAwLDgwMF19LCJwdXIiOiJ2YXJpYXRpb24ifX0=--1420d7fd3d20057726f0ef3c0043db24ca0403be/PERFILERIA%20ESTRUCTURAL%20INOXIDABLE.jpg?locale=es' },
-];
+import React, { useEffect, useState } from 'react';
+import API from '../utils/api';
+import { useNavigate } from 'react-router-dom';
 
 const Productos = () => {
-  const role = localStorage.getItem('role');
+  const [productos, setProductos] = useState([]);
+  const navigate = useNavigate();
+
+  // Obtiene la lista de productos del backend
+  const fetchProducts = async () => {
+    try {
+      const res = await API.get('/products');
+      setProductos(res.data.products);
+    } catch (error) {
+      console.error('Error al obtener productos:', error);
+    }
+  };
+
+  // Agrega un producto al carrito (requiere haber iniciado sesión)
+  const handleAddToCart = async (productId) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // Si no está logueado, lo mandamos a la página de login
+      navigate('/login');
+      return;
+    }
+    try {
+      await API.post('/cart/add', { productId });
+      alert('✅ Producto agregado al carrito');
+    } catch (error) {
+      console.error('Error al agregar al carrito:', error);
+      alert('❌ No se pudo agregar al carrito');
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   return (
-    <div className="max-w-7xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Nuestros Productos</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {productos.map((producto) => (
-          <div key={producto.id} className="border rounded-lg overflow-hidden shadow hover:shadow-lg transition">
-            <img src={producto.imagen} alt={producto.nombre} className="w-full h-48 object-cover" />
-            <div className="p-4">
-              <h2 className="text-lg font-semibold">{producto.nombre}</h2>
-              <p className="text-gray-700">S/ {producto.precio}</p>
-              <Link
-                to={`/productos/${producto.id}`}
-                className="mt-2 inline-block bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                Ver Detalle
-              </Link>
-              {role === 'cliente' && (
-                <button className="mt-2 w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                  Añadir al carrito
-                </button>
-              )}
-            </div>
+    <div className="max-w-4xl mx-auto py-10">
+      <h1 className="text-3xl font-bold mb-6 text-center">Nuestros Productos</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {productos.map((prod) => (
+          <div
+            key={prod._id}
+            className="bg-white border rounded-lg p-4 shadow hover:shadow-md flex flex-col"
+          >
+            {prod.imageUrl && (
+              <img
+                src={prod.imageUrl}
+                alt={prod.name}
+                className="w-full h-40 object-cover mb-4 rounded"
+              />
+            )}
+            <h2 className="text-xl font-semibold mb-2">{prod.name}</h2>
+            <p className="text-gray-700 mb-2">{prod.description}</p>
+            <p className="text-gray-700 mb-4">Precio: ${prod.price.toFixed(2)}</p>
+            <button
+              onClick={() => handleAddToCart(prod._id)}
+              className="mt-auto bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+            >
+              Agregar al carrito
+            </button>
           </div>
         ))}
       </div>

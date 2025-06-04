@@ -1,9 +1,10 @@
-import React from 'react';
-
+// components/Footer.jsx
 const Footer = () => {
   return (
-    <footer className="bg-gray-800 text-white text-center py-4">
-      <p>&copy; {new Date().getFullYear()} IPASA. Todos los derechos reservados.</p>
+    <footer className="bg-white shadow-inner mt-8">
+      <div className="container mx-auto px-4 py-4 text-center text-sm text-gray-600">
+        © 2025 SWGVIPASA. Todos los derechos reservados.
+      </div>
     </footer>
   );
 };

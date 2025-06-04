@@ -1,48 +1,63 @@
+// src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Productos from './pages/Productos';
-import DetalleProducto from './pages/DetalleProducto';
-import Nosotros from './pages/Nosotros';
-import Contacto from './pages/Contacto';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
 import Navbar from './components/Navbar';
-import Footer from './components/Footer';
+import PrivateRoute from './components/PrivateRoute';
+
+import Home from './pages/Home';
+import Productos from './pages/Productos';
+import Contacto from './pages/Contacto';
+import Cart from './pages/Cart';
+import Login from './pages/Login';
+import AccesoDenegado from './pages/AccesoDenegado';
 import AdminDashboard from './pages/AdminDashboard';
+import VendedorDashboard from './pages/VendedorDashboard';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Rutas del administrador: sin Navbar ni Footer */}
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+    <BrowserRouter>
+      {/* Navbar siempre visible */}
+      <Navbar />
 
-        {/* Rutas públicas: con Navbar y Footer */}
-        <Route
-          path="*"
-          element={
-            <div className="flex flex-col min-h-screen">
-              <Navbar />
-              <main className="flex-grow">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/productos" element={<Productos />} />
-                  <Route path="/productos/:id" element={<DetalleProducto />} />
-                  <Route path="/nosotros" element={<Nosotros />} />
-                  <Route path="/contacto" element={<Contacto />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password/:token" element={<ResetPassword />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
-          }
-        />
-      </Routes>
-    </Router>
+      {/* Contenido principal: las rutas se renderizan debajo del Nav */}
+      <div className="mt-6">
+        <Routes>
+          {/* Rutas públicas */}
+          <Route path="/" element={<Home />} />
+          <Route path="/productos" element={<Productos />} />
+          <Route path="/contacto" element={<Contacto />} />
+          <Route path="/cart" element={
+            <PrivateRoute allowedRoles={['administrador','vendedor','cliente']}>
+              <Cart />
+            </PrivateRoute>
+          } />
+          <Route path="/login" element={<Login />} />
+          <Route path="/acceso-denegado" element={<AccesoDenegado />} />
+
+          {/* Rutas protegidas */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <PrivateRoute allowedRoles={['administrador']}>
+                <AdminDashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/vendedor/dashboard"
+            element={
+              <PrivateRoute allowedRoles={['vendedor']}>
+                <VendedorDashboard />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Ruta comodín: cualquier URL no definida redirige a Home */}
+          <Route path="*" element={<Home />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 
