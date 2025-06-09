@@ -3,13 +3,13 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
-import PrivateRoute from './components/PrivateRoute';
 
 import Home from './pages/Home';
 import Productos from './pages/Productos';
 import Contacto from './pages/Contacto';
-import Cart from './pages/Cart';
 import Login from './pages/Login';
+import Register from './pages/Register';     // si aún lo usas
+import Cart from './pages/Cart';
 import AccesoDenegado from './pages/AccesoDenegado';
 import AdminDashboard from './pages/AdminDashboard';
 import VendedorDashboard from './pages/VendedorDashboard';
@@ -17,43 +17,29 @@ import VendedorDashboard from './pages/VendedorDashboard';
 function App() {
   return (
     <BrowserRouter>
-      {/* Navbar siempre visible */}
       <Navbar />
-
-      {/* Contenido principal: las rutas se renderizan debajo del Nav */}
       <div className="mt-6">
         <Routes>
-          {/* Rutas públicas */}
+          {/* SPA principal */}
           <Route path="/" element={<Home />} />
+
+          {/* Opcionales rutas directas */}
           <Route path="/productos" element={<Productos />} />
-          <Route path="/contacto" element={<Contacto />} />
-          <Route path="/cart" element={
-            <PrivateRoute allowedRoles={['administrador','vendedor','cliente']}>
-              <Cart />
-            </PrivateRoute>
-          } />
-          <Route path="/login" element={<Login />} />
+          <Route path="/contacto"  element={<Contacto />} />
+
+          {/* Carrito */}
+          <Route path="/cart" element={<Cart />} />
+
+          {/* Auth */}
+          <Route path="/login"    element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/acceso-denegado" element={<AccesoDenegado />} />
 
-          {/* Rutas protegidas */}
-          <Route
-            path="/admin/dashboard"
-            element={
-              <PrivateRoute allowedRoles={['administrador']}>
-                <AdminDashboard />
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/vendedor/dashboard"
-            element={
-              <PrivateRoute allowedRoles={['vendedor']}>
-                <VendedorDashboard />
-              </PrivateRoute>
-            }
-          />
+          {/* Dashboards */}
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/vendedor/dashboard" element={<VendedorDashboard />} />
 
-          {/* Ruta comodín: cualquier URL no definida redirige a Home */}
+          {/* Catch-all: vuelve a Home */}
           <Route path="*" element={<Home />} />
         </Routes>
       </div>

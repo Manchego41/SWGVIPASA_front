@@ -1,26 +1,30 @@
-// src/pages/Login.jsx
+// src/pages/Register.jsx
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 
-export default function Login() {
-  const [form, setForm] = useState({ email: '', password: '' });
+export default function Register() {
+  const [form, setForm] = useState({
+    name: '', username: '', email: '', password: ''
+  });
   const [msg, setMsg] = useState('');
   const navigate = useNavigate();
 
-  const handleChange = e => {
+  const handleChange = e =>
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
 
   const handleSubmit = async e => {
     e.preventDefault();
     setMsg('');
+    if (!form.email.endsWith('@gmail.com')) {
+      setMsg('Solo correos @gmail.com permitidos');
+      return;
+    }
     try {
-      const { data } = await API.post('/auth/login', form);
-      localStorage.setItem('token', data.token);
-      navigate('/');
+      await API.post('/auth/register', form);
+      navigate('/login');
     } catch (err) {
-      setMsg(err.response?.data?.message || 'Error al iniciar sesión');
+      setMsg(err.response?.data?.message || 'Error al registrarse');
     }
   };
 
@@ -30,15 +34,31 @@ export default function Login() {
         onSubmit={handleSubmit}
         className="bg-white p-6 rounded shadow-md w-[320px] space-y-4"
       >
-        <h2 className="text-2xl font-bold text-center">Iniciar sesión</h2>
+        <h2 className="text-2xl font-bold text-center">Registro de usuario</h2>
         {msg && <p className="text-red-500 text-sm text-center">{msg}</p>}
 
+        <input
+          name="name"
+          value={form.name}
+          onChange={handleChange}
+          placeholder="Nombre completo"
+          required
+          className="w-full border p-2 rounded"
+        />
+        <input
+          name="username"
+          value={form.username}
+          onChange={handleChange}
+          placeholder="Usuario"
+          required
+          className="w-full border p-2 rounded"
+        />
         <input
           name="email"
           type="email"
           value={form.email}
           onChange={handleChange}
-          placeholder="Correo electrónico"
+          placeholder="Correo (@gmail.com)"
           required
           className="w-full border p-2 rounded"
         />
@@ -56,15 +76,8 @@ export default function Login() {
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
         >
-          Entrar
+          Registrarme
         </button>
-
-        <p className="mt-4 text-center text-sm">
-          ¿No tienes cuenta?{' '}
-          <Link to="/register" className="text-blue-600 hover:underline">
-            Regístrate aquí
-          </Link>
-        </p>
       </form>
     </div>
   );

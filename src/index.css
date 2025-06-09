@@ -1,10 +1,8 @@
-/* index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  padding: 0;
-  font-family: sans-serif;
+/* Scroll suave para los anchors */
+html {
+  scroll-behavior: smooth;
 }
