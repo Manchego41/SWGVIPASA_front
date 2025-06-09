@@ -1,76 +1,70 @@
+// src/pages/Login.jsx
 import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import API from '../utils/api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [msg, setMsg] = useState('');
+  const [msgError, setMsgError] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', { email, password });
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('role', res.data.role);
-      setMsg('');
+    setMsgError('');
 
-      if (res.data.role === 'administrador') {
-        navigate('/admin');
-      } else if (res.data.role === 'vendedor') {
-        navigate('/vendedor');
+    try {
+      const res = await API.post('/auth/login', { email, password });
+      const { user, token } = res.data;
+
+      localStorage.setItem('token', token);
+      localStorage.setItem('name', user.name);
+      localStorage.setItem('role', user.role);
+
+      if (user.role === 'administrador') {
+        navigate('/admin/dashboard');
+      } else if (user.role === 'vendedor') {
+        navigate('/vendedor/dashboard');
       } else {
         navigate('/');
       }
     } catch (error) {
-      setMsg(error.response?.data?.message || 'Error al iniciar sesión');
+      const message = error.response?.data?.message || 'Credenciales inválidas';
+      setMsgError(message);
     }
   };
 
   return (
-    <div
-      className="flex justify-center items-center h-screen bg-cover bg-center"
-      style={{ backgroundImage: "url('/IPASA LOGO.jpeg')" }}
-    >
-      <form
-        onSubmit={handleLogin}
-        className="bg-white bg-opacity-90 backdrop-blur-md p-8 rounded-lg shadow-lg w-full max-w-sm"
-      >
-        <h2 className="text-2xl font-bold mb-6 text-center">Iniciar Sesión</h2>
-
-        {msg && <p className="mb-4 text-sm text-red-600 text-center">{msg}</p>}
-
-        <input
-          type="email"
-          placeholder="Correo electrónico"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="w-full border border-gray-300 p-2 rounded mb-4"
-        />
-
-        <input
-          type="password"
-          placeholder="Contraseña"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          className="w-full border border-gray-300 p-2 rounded mb-4"
-        />
-
+    <div className="flex items-center justify-center h-screen bg-gray-50">
+      <form className="bg-white p-6 rounded shadow-md w-[320px]" onSubmit={handleLogin}>
+        <h2 className="text-2xl font-bold mb-4 text-center">Iniciar sesión</h2>
+        {msgError && <p className="text-red-500 mb-2">{msgError}</p>}
+        <label className="block mb-2">
+          <span className="text-gray-700">Correo electrónico</span>
+          <input
+            type="email"
+            className="mt-1 block w-full border-gray-300 rounded-md p-2"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </label>
+        <label className="block mb-4">
+          <span className="text-gray-700">Contraseña</span>
+          <input
+            type="password"
+            className="mt-1 block w-full border-gray-300 rounded-md p-2"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </label>
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
         >
-          Ingresar
+          Entrar
         </button>
-
-        <div className="mt-4 text-center">
-          <Link to="/forgot-password" className="text-sm text-blue-600 hover:underline">
-            ¿Olvidaste tu contraseña?
-          </Link>
-        </div>
       </form>
     </div>
   );
