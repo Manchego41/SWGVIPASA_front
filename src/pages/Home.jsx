@@ -1,22 +1,52 @@
+// src/pages/Home.jsx (o donde esté tu listado de productos)
 import React, { useEffect, useState } from 'react';
-import API from '../utils/api';
-import HeroBanner from '../components/HeroBanner';
-import Productos from './Productos';
-import Contacto  from './Contacto';
+import { useNavigate }                from 'react-router-dom';
+import API                            from '../utils/api';
+import HeroBanner                     from '../components/HeroBanner';
+import Contacto                       from './Contacto';
 
 export default function Home() {
-  const [productos, setProductos] = useState([]);
+  const [productos, setProductos] = useState([]); 
   const [search, setSearch]       = useState('');
+  const navigate                   = useNavigate();
 
   useEffect(() => {
     API.get('/products')
-      .then(res => setProductos(res.data.products))
+      .then(res => {
+        const lista = Array.isArray(res.data) ? res.data : res.data.products;
+        setProductos(lista);
+      })
       .catch(console.error);
   }, []);
 
   const filtrados = productos.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleAddToCart = prod => {
+    // 1) Recuperamos el objeto 'user' que guardamos al hacer login
+    const stored = JSON.parse(localStorage.getItem('user') || 'null');
+    const token  = stored?.token;
+
+    // 2) Si no hay token, vamos al login
+    if (!token) {
+      return navigate('/login');
+    }
+
+    // 3) Si hay, añadimos al carrito
+    API.post(
+      '/cart',
+      { productId: prod._id },
+      { headers: { Authorization: `Bearer ${token}` } }
+    )
+      .then(() => {
+        alert('Producto agregado al carrito 👍');
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Error al añadir al carrito');
+      });
+  };
 
   return (
     <div className="pt-16 scroll-smooth">
@@ -53,15 +83,11 @@ export default function Home() {
                 )}
                 <h3 className="text-xl font-semibold mb-2">{prod.name}</h3>
                 <p className="text-gray-700 mb-2">{prod.description}</p>
-                <p className="text-gray-800 font-bold mb-4">S/ {prod.price.toFixed(2)}</p>
+                <p className="text-gray-800 font-bold mb-4">
+                  S/ {prod.price.toFixed(2)}
+                </p>
                 <button
-                  onClick={() => {
-                    const token = localStorage.getItem('token');
-                    if (!token) return window.location = '/login';
-                    API.post('/cart', { productId: prod._id }, {
-                      headers:{ Authorization:`Bearer ${token}` }
-                    });
-                  }}
+                  onClick={() => handleAddToCart(prod)}
                   className="mt-auto bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
                 >
                   Agregar al carrito

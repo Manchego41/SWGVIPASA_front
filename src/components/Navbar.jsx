@@ -1,44 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import ProfileMenu from './ProfileMenu';
+import React from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 
 export default function Navbar() {
-  const [user, setUser] = useState(null);
-  const navigate = useNavigate();
+  const location = useLocation();
+  if (location.pathname.startsWith('/admin')) return null;
 
-  // Cargar usuario de localStorage
-  useEffect(() => {
-    const u = localStorage.getItem('user');
-    setUser(u ? JSON.parse(u) : null);
-  }, []);
+  const user = JSON.parse(localStorage.getItem('user') || 'null');
 
   return (
-    <nav className="fixed top-0 w-full bg-white shadow z-20">
-      <div className="max-w-6xl mx-auto px-4 flex justify-between items-center h-16">
-        {/* Logo */}
-        <Link to="/" className="text-2xl font-bold text-gray-800">
-          IPASA
-        </Link>
+    <header className="fixed w-full bg-white shadow z-10">
+      <nav className="container mx-auto px-4 py-3 flex justify-between">
+        <NavLink to="/" className="text-xl font-bold">IPASA</NavLink>
+        <ul className="flex space-x-6">
+          <li><NavLink to="/"      end>Home</NavLink></li>
+          <li><NavLink to="/productos">Productos</NavLink></li>
+          <li><NavLink to="/contacto" >Contacto</NavLink></li>
 
-        {/* Menú */}
-        <div className="flex items-center space-x-6">
-          <a href="#home"      className="text-gray-700 hover:text-gray-900">Inicio</a>
-          <a href="#productos" className="text-gray-700 hover:text-gray-900">Productos</a>
-          <a href="#contacto"  className="text-gray-700 hover:text-gray-900">Contacto</a>
-
-          {user ? (
-            <ProfileMenu user={user} onLogout={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              navigate('/login');
-            }}/>
-          ) : (
-            <Link to="/login" className="text-gray-700 hover:text-gray-900">
-              Inicia sesión
-            </Link>
+          {!user && (
+            <li>
+              <NavLink to="/login">Iniciar sesión / Registrarse</NavLink>
+            </li>
           )}
-        </div>
-      </div>
-    </nav>
+
+          {user && user.role !== 'administrador' && (
+            <>
+              <li><NavLink to="/cart">Carrito</NavLink></li>
+              <li><NavLink to="/profile">{user.name}</NavLink></li>
+            </>
+          )}
+
+          {user && user.role === 'administrador' && (
+            <li><NavLink to="/admin">Panel Admin</NavLink></li>
+          )}
+        </ul>
+      </nav>
+    </header>
   );
 }
