@@ -1,16 +1,14 @@
-// src/pages/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import API from '../utils/api';
 
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg]   = useState('');
   const navigate = useNavigate();
 
-  const handleChange = e => {
+  const handleChange = e =>
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
-  };
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -18,6 +16,7 @@ export default function Login() {
     try {
       const { data } = await API.post('/auth/login', form);
       localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
       navigate('/');
     } catch (err) {
       setMsg(err.response?.data?.message || 'Error al iniciar sesión');

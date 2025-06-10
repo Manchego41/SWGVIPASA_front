@@ -1,45 +1,56 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 
-export default function Register() {
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+export default function Profile() {
+  const [form, setForm] = useState({ name: '', email: '' });
   const [msg, setMsg]   = useState('');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return navigate('/login');
+
+    API.get('/users/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => setForm({
+        name: res.data.name,
+        email: res.data.email
+      }))
+      .catch(() => navigate('/login'));
+  }, [navigate]);
 
   const handleChange = e =>
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
-  const handleSubmit = async e => {
+  const handleSubmit = e => {
     e.preventDefault();
-    setMsg('');
     if (!form.email.endsWith('@gmail.com')) {
-      setMsg('Solo correos @gmail.com permitidos');
+      setMsg('Correo debe terminar en @gmail.com');
       return;
     }
-    try {
-      await API.post('/auth/register', form);
-      navigate('/login');
-    } catch (err) {
-      setMsg(err.response?.data?.message || 'Error al registrarse');
-    }
+    API.put('/users/me', form, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    })
+      .then(() => setMsg('Perfil actualizado correctamente'))
+      .catch(err => setMsg(err.response?.data?.message || 'Error'));
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-50">
+    <div className="flex justify-center py-16">
       <form
         onSubmit={handleSubmit}
         className="bg-white p-6 rounded shadow-md w-[320px] space-y-4"
       >
-        <h2 className="text-2xl font-bold text-center">Registro de usuario</h2>
-        {msg && <p className="text-red-500 text-sm text-center">{msg}</p>}
+        <h2 className="text-2xl font-bold text-center">Mi Perfil</h2>
+        {msg && <p className="text-green-600 text-center">{msg}</p>}
 
         <input
           name="name"
           value={form.name}
           onChange={handleChange}
           placeholder="Nombre completo"
-          required
           className="w-full border p-2 rounded"
         />
         <input
@@ -48,16 +59,6 @@ export default function Register() {
           value={form.email}
           onChange={handleChange}
           placeholder="Correo (@gmail.com)"
-          required
-          className="w-full border p-2 rounded"
-        />
-        <input
-          name="password"
-          type="password"
-          value={form.password}
-          onChange={handleChange}
-          placeholder="Contraseña"
-          required
           className="w-full border p-2 rounded"
         />
 
@@ -65,7 +66,7 @@ export default function Register() {
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
         >
-          Registrarme
+          Actualizar perfil
         </button>
       </form>
     </div>

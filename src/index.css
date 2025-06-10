@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Scroll suave para los anchors */
+/* Scroll suave para anclas */
 html {
   scroll-behavior: smooth;
 }

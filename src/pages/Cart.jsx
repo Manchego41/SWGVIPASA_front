@@ -1,91 +1,75 @@
-// src/pages/Cart.jsx
 import React, { useEffect, useState } from 'react';
-import API from '../utils/api';
 import { useNavigate } from 'react-router-dom';
+import API from '../utils/api';
 
-const Cart = () => {
-  const [cart, setCart] = useState(null);
+export default function Cart() {
+  const [items, setItems] = useState([]);
   const navigate = useNavigate();
 
-  // Obtiene el carrito del usuario
-  const fetchCart = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    try {
-      const res = await API.get('/cart');
-      setCart(res.data.cart);
-    } catch (error) {
-      console.error('Error al obtener carrito:', error);
-    }
-  };
-
-  // Remover un producto del carrito
-  const handleRemove = async (productId) => {
-    try {
-      await API.post('/cart/remove', { productId });
-      fetchCart();
-    } catch (error) {
-      console.error('Error al remover del carrito:', error);
-    }
-  };
-
   useEffect(() => {
-    fetchCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const token = localStorage.getItem('token');
+    if (!token) return navigate('/login');
+    API.get('/cart', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => setItems(res.data.items))
+      .catch(console.error);
+  }, [navigate]);
 
-  if (!cart) {
-    return <p className="text-center mt-10">Cargando carrito…</p>;
-  }
+  const remove = productId => {
+    API.delete(`/cart/${productId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    }).then(res => setItems(res.data.items));
+  };
+
+  const total = items.reduce(
+    (sum, i) => sum + i.product.price * i.quantity,
+    0
+  );
 
   return (
-    <div className="max-w-4xl mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6 text-center">Tu Carrito</h1>
-      {cart.items.length === 0 ? (
-        <p className="text-center">Tu carrito está vacío.</p>
+    <div className="container mx-auto px-4 py-16">
+      <h2 className="text-3xl font-bold mb-8">Mi carrito</h2>
+      {items.length === 0 ? (
+        <p>Tu carrito está vacío.</p>
       ) : (
         <div className="space-y-4">
-          {cart.items.map(({ product, quantity }) => (
+          {items.map(i => (
             <div
-              key={product._id}
-              className="flex items-center border p-4 rounded bg-white shadow"
+              key={i.product._id}
+              className="flex items-center justify-between bg-white p-4 rounded shadow"
             >
-              {product.imageUrl && (
+              <div className="flex items-center space-x-4">
                 <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="w-20 h-20 object-cover mr-4 rounded"
+                  src={i.product.imageUrl}
+                  alt={i.product.name}
+                  className="w-16 h-16 object-cover rounded"
                 />
-              )}
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold">{product.name}</h2>
-                <p className="text-gray-700">Precio: ${product.price.toFixed(2)}</p>
-                <p className="text-gray-700">Cantidad: {quantity}</p>
+                <div>
+                  <h3 className="text-lg">{i.product.name}</h3>
+                  <p>Cantidad: {i.quantity}</p>
+                </div>
               </div>
-              <button
-                onClick={() => handleRemove(product._id)}
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-              >
-                Eliminar
-              </button>
+              <div className="text-right">
+                <p className="font-bold">
+                  S/ {(i.product.price * i.quantity).toFixed(2)}
+                </p>
+                <button
+                  onClick={() => remove(i.product._id)}
+                  className="text-red-600 hover:underline mt-2"
+                >
+                  Eliminar
+                </button>
+              </div>
             </div>
           ))}
-
-          <div className="text-right mt-6">
-            <p className="text-2xl font-bold">
-              Total: $
-              {cart.items
-                .reduce((sum, { product, quantity }) => sum + product.price * quantity, 0)
-                .toFixed(2)}
+          <div className="text-right mt-4">
+            <p className="text-xl font-bold">
+              Total: S/ {total.toFixed(2)}
             </p>
           </div>
         </div>
       )}
     </div>
   );
-};
-
-export default Cart;
+}

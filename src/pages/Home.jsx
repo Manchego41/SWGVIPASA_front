@@ -1,18 +1,17 @@
-// src/pages/Home.jsx
 import React, { useEffect, useState } from 'react';
 import API from '../utils/api';
 import HeroBanner from '../components/HeroBanner';
 import Productos from './Productos';
-import Contacto from './Contacto';
+import Contacto  from './Contacto';
 
 export default function Home() {
   const [productos, setProductos] = useState([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch]       = useState('');
 
   useEffect(() => {
     API.get('/products')
       .then(res => setProductos(res.data.products))
-      .catch(err => console.error(err));
+      .catch(console.error);
   }, []);
 
   const filtrados = productos.filter(p =>
@@ -22,14 +21,11 @@ export default function Home() {
   return (
     <div className="pt-16 scroll-smooth">
       {/* Hero */}
-      <section
-        id="home"
-        className="min-h-screen flex items-center justify-center bg-gray-100"
-      >
+      <section id="home" className="min-h-screen flex items-center justify-center bg-gray-100">
         <HeroBanner />
       </section>
 
-      {/* Productos con filtro */}
+      {/* Productos */}
       <section id="productos" className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-8">Nuestros Productos</h2>
@@ -57,14 +53,14 @@ export default function Home() {
                 )}
                 <h3 className="text-xl font-semibold mb-2">{prod.name}</h3>
                 <p className="text-gray-700 mb-2">{prod.description}</p>
-                <p className="text-gray-800 font-bold mb-4">
-                  S/ {prod.price.toFixed(2)}
-                </p>
+                <p className="text-gray-800 font-bold mb-4">S/ {prod.price.toFixed(2)}</p>
                 <button
                   onClick={() => {
                     const token = localStorage.getItem('token');
                     if (!token) return window.location = '/login';
-                    API.post('/cart/add', { productId: prod._id });
+                    API.post('/cart', { productId: prod._id }, {
+                      headers:{ Authorization:`Bearer ${token}` }
+                    });
                   }}
                   className="mt-auto bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
                 >
@@ -76,7 +72,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Contacto estático */}
+      {/* Contacto */}
       <section id="contacto" className="py-16 bg-gray-50">
         <Contacto />
       </section>
