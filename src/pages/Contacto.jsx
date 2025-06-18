@@ -1,67 +1,16 @@
 // src/pages/Contacto.jsx
-import React, { useState } from 'react';
+import React from 'react';
 
-const Contacto = () => {
-  const [nombre, setNombre] = useState('');
-  const [email, setEmail] = useState('');
-  const [mensaje, setMensaje] = useState('');
-  const [enviado, setEnviado] = useState(false);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log({ nombre, email, mensaje });
-    setEnviado(true);
-  };
-
+export default function Contacto() {
   return (
-    <div className="max-w-md mx-auto my-10 bg-white border rounded-lg p-6 shadow">
-      <h1 className="text-2xl font-bold mb-4 text-center">Contáctanos</h1>
-      {enviado ? (
-        <p className="text-green-600 text-center">
-          ¡Gracias por tu mensaje! Nos pondremos en contacto pronto.
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-700 mb-1">Nombre</label>
-            <input
-              type="text"
-              className="w-full border-gray-300 rounded-md p-2"
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-1">Correo Electrónico</label>
-            <input
-              type="email"
-              className="w-full border-gray-300 rounded-md p-2"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-1">Mensaje</label>
-            <textarea
-              className="w-full border-gray-300 rounded-md p-2"
-              rows={4}
-              value={mensaje}
-              onChange={(e) => setMensaje(e.target.value)}
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-          >
-            Enviar Mensaje
-          </button>
-        </form>
-      )}
+    <div className="container mx-auto px-4 py-16">
+      <h2 className="text-3xl font-bold text-center mb-8">Contáctanos</h2>
+      <div className="max-w-lg mx-auto space-y-4 text-gray-700">
+        <p><strong>Teléfono:</strong> +51 922 402 449</p>
+        <p><strong>Correo:</strong> servicio.ipasa@gmail.com</p>
+        <p><strong>Ubicación:</strong> Av. Costanera 1200, San Miguel 15087</p>
+        <p><strong>Horario de atención:</strong> Lun–Vie 9:00–18:00</p>
+      </div>
     </div>
   );
-};
-
-export default Contacto;
+}

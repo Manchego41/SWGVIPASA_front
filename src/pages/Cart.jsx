@@ -1,91 +1,107 @@
 // src/pages/Cart.jsx
 import React, { useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import API from '../utils/api';
-import { useNavigate } from 'react-router-dom';
 
-const Cart = () => {
-  const [cart, setCart] = useState(null);
-  const navigate = useNavigate();
-
-  // Obtiene el carrito del usuario
-  const fetchCart = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    try {
-      const res = await API.get('/cart');
-      setCart(res.data.cart);
-    } catch (error) {
-      console.error('Error al obtener carrito:', error);
-    }
-  };
-
-  // Remover un producto del carrito
-  const handleRemove = async (productId) => {
-    try {
-      await API.post('/cart/remove', { productId });
-      fetchCart();
-    } catch (error) {
-      console.error('Error al remover del carrito:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (!cart) {
-    return <p className="text-center mt-10">Cargando carrito…</p>;
+export default function Cart() {
+  // 1) Redirección sin parpadeo si no hay token
+  const stored = JSON.parse(localStorage.getItem('user') || 'null');
+  const token  = stored?.token;
+  if (!token) {
+    return <Navigate to="/login" replace />;
   }
 
-  return (
-    <div className="max-w-4xl mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6 text-center">Tu Carrito</h1>
-      {cart.items.length === 0 ? (
-        <p className="text-center">Tu carrito está vacío.</p>
-      ) : (
-        <div className="space-y-4">
-          {cart.items.map(({ product, quantity }) => (
-            <div
-              key={product._id}
-              className="flex items-center border p-4 rounded bg-white shadow"
-            >
-              {product.imageUrl && (
-                <img
-                  src={product.imageUrl}
-                  alt={product.name}
-                  className="w-20 h-20 object-cover mr-4 rounded"
-                />
-              )}
-              <div className="flex-1">
-                <h2 className="text-xl font-semibold">{product.name}</h2>
-                <p className="text-gray-700">Precio: ${product.price.toFixed(2)}</p>
-                <p className="text-gray-700">Cantidad: {quantity}</p>
-              </div>
-              <button
-                onClick={() => handleRemove(product._id)}
-                className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-              >
-                Eliminar
-              </button>
-            </div>
-          ))}
+  // 2) Estados
+  const [items, setItems]     = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
 
-          <div className="text-right mt-6">
-            <p className="text-2xl font-bold">
-              Total: $
-              {cart.items
-                .reduce((sum, { product, quantity }) => sum + product.price * quantity, 0)
-                .toFixed(2)}
-            </p>
+  // 3) Fetch del carrito
+  useEffect(() => {
+    API.get('/cart', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => {
+        setItems(res.data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setLoading(false);
+      });
+  }, [token]);
+
+  // 4) Manejadores de estados
+  if (loading) {
+    return <div className="pt-16 p-6">Cargando carrito…</div>;
+  }
+  if (error) {
+    return (
+      <div className="pt-16 p-6 text-red-600">
+        Error al cargar el carrito: {error.response?.data?.message || error.message}
+      </div>
+    );
+  }
+
+  // 5) Filtrar solo ítems con producto poblado para evitar crash
+  const validItems = items.filter(item => item.product && item.product.price != null);
+
+  // 6) Calcular total
+  const total = validItems.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
+    0
+  );
+
+  // 7) Quitar ítems del carrito
+  const handleRemove = id => {
+    if (!window.confirm('¿Quitar este producto del carrito?')) return;
+    API.delete(`/cart/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(() => setItems(items.filter(i => i._id !== id)))
+      .catch(console.error);
+  };
+
+  return (
+    <div className="pt-16 p-6">
+      <h1 className="text-2xl font-bold mb-4">Mi Carrito</h1>
+
+      {validItems.length === 0 ? (
+        <p>Tu carrito está vacío.</p>
+      ) : (
+        <>
+          <table className="w-full mb-6 bg-white rounded shadow">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-2">Producto</th>
+                <th className="px-4 py-2">Precio</th>
+                <th className="px-4 py-2">Cantidad</th>
+                <th className="px-4 py-2">Subtotal</th>
+                <th className="px-4 py-2">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {validItems.map(item => (
+                <tr key={item._id} className="border-t">
+                  <td className="px-4 py-2">{item.product.name}</td>
+                  <td className="px-4 py-2">S/ {item.product.price.toFixed(2)}</td>
+                  <td className="px-4 py-2">{item.quantity}</td>
+                  <td className="px-4 py-2">
+                    S/ {(item.product.price * item.quantity).toFixed(2)}
+                  </td>
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => handleRemove(item._id)}
+                      className="px-2 py-1 bg-red-500 text-white rounded"
+                    >
+                      Quitar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="text-right text-xl font-semibold">
+            Total a pagar: S/ {total.toFixed(2)}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
-};
-
-export default Cart;
+}
