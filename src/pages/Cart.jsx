@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 import API from '../utils/api';
 
 export default function Cart() {
-  // 1) Redirección sin parpadeo si no hay token
+  // 1) Redirección si no hay token
   const stored = JSON.parse(localStorage.getItem('user') || 'null');
   const token  = stored?.token;
   if (!token) {
@@ -14,56 +14,68 @@ export default function Cart() {
   // 2) Estados
   const [items, setItems]     = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [paying, setPaying]   = useState(false);
 
-  // 3) Fetch del carrito
+  // 3) Cargar carrito
   useEffect(() => {
-    API.get('/cart', { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => {
+    const fetchCart = async () => {
+      try {
+        setLoading(true);
+        const res = await API.get('/cart', { headers: { Authorization: `Bearer ${token}` } });
         setItems(res.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        setError(err);
-        setLoading(false);
-      });
+      }
+    };
+    fetchCart();
   }, [token]);
 
-  // 4) Manejadores de estados
-  if (loading) {
-    return <div className="pt-16 p-6">Cargando carrito…</div>;
-  }
-  if (error) {
-    return (
-      <div className="pt-16 p-6 text-red-600">
-        Error al cargar el carrito: {error.response?.data?.message || error.message}
-      </div>
-    );
-  }
-
-  // 5) Filtrar solo ítems con producto poblado para evitar crash
+  // 4) Filtrar ítems válidos
   const validItems = items.filter(item => item.product && item.product.price != null);
 
-  // 6) Calcular total
+  // 5) Calcular total
   const total = validItems.reduce(
     (sum, item) => sum + item.product.price * item.quantity,
     0
   );
 
-  // 7) Quitar ítems del carrito
+  // 6) Quitar ítems del carrito
   const handleRemove = id => {
     if (!window.confirm('¿Quitar este producto del carrito?')) return;
     API.delete(`/cart/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(() => setItems(items.filter(i => i._id !== id)))
+      .then(() => setItems(prev => prev.filter(i => i._id !== id)))
       .catch(console.error);
   };
 
-  return (
-    <div className="pt-16 p-6">
-      <h1 className="text-2xl font-bold mb-4">Mi Carrito</h1>
+  // 7) Iniciar proceso de pago
+  const handleCheckout = async () => {
+    try {
+      setPaying(true);
+      const res = await API.post(
+        '/cart/checkout',
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const { init_point } = res.data;
+      // redirigimos al flujo de pago de MercadoPago
+      window.location.href = init_point;
+    } catch (err) {
+      console.error(err);
+      alert('Error al iniciar el pago');
+    } finally {
+      setPaying(false);
+    }
+  };
 
-      {validItems.length === 0 ? (
-        <p>Tu carrito está vacío.</p>
+  return (
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Mi Carrito</h1>
+      {loading ? (
+        <div>Cargando...</div>
+      ) : validItems.length === 0 ? (
+        <div>No hay ítems en el carrito.</div>
       ) : (
         <>
           <table className="w-full mb-6 bg-white rounded shadow">
@@ -97,8 +109,18 @@ export default function Cart() {
               ))}
             </tbody>
           </table>
+
           <div className="text-right text-xl font-semibold">
             Total a pagar: S/ {total.toFixed(2)}
+          </div>
+          <div className="text-right mt-4">
+            <button
+              onClick={handleCheckout}
+              disabled={paying}
+              className={`px-4 py-2 rounded text-white ${paying ? 'bg-gray-500' : 'bg-green-500'}`}
+            >
+              {paying ? 'Procesando...' : 'Pagar'}
+            </button>
           </div>
         </>
       )}
