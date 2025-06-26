@@ -20,23 +20,70 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed w-full bg-white shadow z-10">
+    <header
+      className="fixed w-full z-10"
+      style={{ backgroundColor: '#004157' }}
+    >
       <nav className="container mx-auto px-4 py-3 flex justify-between items-center">
-        <NavLink to="/" className="text-xl font-bold">IPASA</NavLink>
+        {/* Logo */}
+        <div className="flex items-center space-x-2">
+          <img
+            src="/descarga-removebg-preview.png"
+            alt="IPASA Logo"
+            className="h-8 w-auto"
+          />
+          <span className="text-[#00AEEF] text-xl font-bold">IPASA</span>
+        </div>
+
+        {/* Links */}
         <ul className="flex space-x-6 items-center">
-          <li><NavLink to="/" end>Home</NavLink></li>
-          <li><NavLink to="/productos">Productos</NavLink></li>
-          <li><NavLink to="/contacto">Contacto</NavLink></li>
+          <li>
+            <NavLink
+              to="/"
+              end
+              className="text-white hover:text-[#00AEEF]"
+            >
+              Home
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/productos"
+              className="text-white hover:text-[#00AEEF]"
+            >
+              Productos
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/contacto"
+              className="text-white hover:text-[#00AEEF]"
+            >
+              Contáctenos
+            </NavLink>
+          </li>
 
           {!user && (
             <li>
-              <NavLink to="/login">Iniciar sesión / Registrarse</NavLink>
+              <NavLink
+                to="/login"
+                className="px-4 py-2 bg-[#00AEEF] text-white rounded hover:bg-opacity-90"
+              >
+                Iniciar sesión
+              </NavLink>
             </li>
           )}
 
           {user && user.role !== 'administrador' && (
             <>
-              <li><NavLink to="/cart">Carrito</NavLink></li>
+              <li>
+                <NavLink
+                  to="/cart"
+                  className="text-white hover:text-[#00AEEF]"
+                >
+                  Carrito
+                </NavLink>
+              </li>
               <li>
                 <ProfileMenu user={user} onLogout={handleLogout} />
               </li>
@@ -44,10 +91,17 @@ export default function Navbar() {
           )}
 
           {user && user.role === 'administrador' && (
-            <li><NavLink to="/admin">Panel Admin</NavLink></li>
+            <li>
+              <NavLink
+                to="/admin"
+                className="text-white hover:text-[#00AEEF]"
+              >
+                Panel Admin
+              </NavLink>
+            </li>
           )}
         </ul>
       </nav>
     </header>
-  );
+);
 }
