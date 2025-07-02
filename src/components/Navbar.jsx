@@ -46,21 +46,23 @@ export default function Navbar() {
               Home
             </NavLink>
           </li>
+
           <li>
-            <NavLink
-              to="/productos"
+            <a
+              href="#productos"
               className="text-white hover:text-[#00AEEF]"
             >
               Productos
-            </NavLink>
+            </a>
           </li>
+
           <li>
-            <NavLink
-              to="/contacto"
+            <a
+              href="#contacto"
               className="text-white hover:text-[#00AEEF]"
             >
               Contáctenos
-            </NavLink>
+            </a>
           </li>
 
           {!user && (
@@ -103,5 +105,5 @@ export default function Navbar() {
         </ul>
       </nav>
     </header>
-);
+  );
 }

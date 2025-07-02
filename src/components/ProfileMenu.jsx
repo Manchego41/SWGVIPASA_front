@@ -1,4 +1,3 @@
-// src/components/ProfileMenu.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -6,7 +5,6 @@ export default function ProfileMenu({ user, onLogout }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
 
-  // Cerrar menú al hacer click fuera
   useEffect(() => {
     const handleClickOutside = e => {
       if (ref.current && !ref.current.contains(e.target)) {
@@ -25,9 +23,9 @@ export default function ProfileMenu({ user, onLogout }) {
         onClick={() => setOpen(o => !o)}
         className="focus:outline-none flex items-center space-x-1"
       >
-        <span className="font-medium text-gray-700">{user.name}</span>
+        <span className="font-medium text-white">{user.name}</span>
         <svg
-          className="w-4 h-4 text-gray-600"
+          className="w-4 h-4 text-white"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
