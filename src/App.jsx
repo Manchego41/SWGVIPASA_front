@@ -13,12 +13,14 @@ import Login from './pages/Login';
 import Cart from './pages/Cart';
 import Profile from './pages/Profile';
 import AccesoDenegado from './pages/AccesoDenegado';
+import RecuperarContraseña from './pages/RecuperarContraseña';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersList from './pages/admin/UsersList';
 import UserEditor from './pages/admin/UserEditor';
 import ProductsList from './pages/admin/ProductsList';
 import ProductEditor from './pages/admin/ProductEditor';
+import ClientDetail from './pages/admin/ClientDetail';
 
 function App() {
   return (
@@ -34,6 +36,7 @@ function App() {
           <Route path="/productos" element={<Productos />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<RecuperarContraseña />} />
 
           {/* Carrito protegido: sólo usuarios logueados */}
           <Route
@@ -60,6 +63,7 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UsersList />} />
             <Route path="users/:id" element={<UserEditor />} />
+            <Route path="clients/:id" element={<ClientDetail />} />
             <Route path="products" element={<ProductsList />} />
             <Route path="products/:id" element={<ProductEditor />} />
             <Route path="products/new" element={<ProductEditor />} />

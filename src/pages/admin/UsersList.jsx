@@ -10,13 +10,41 @@ export default function UsersList() {
       .then(res => {
         // filtrar solo 'cliente'
         const clientes = res.data.filter(u => u.role === 'cliente');
-        setUsers(clientes);
+
+        // --- IMPORTANTE ---
+        // Para desarrollo y pruebas, se muestran datos simulados si no hay clientes o si la API falla.
+        // Cuando el backend esté listo y devuelva los usuarios correctamente,
+        // ELIMINA o COMENTA el bloque de datos simulados y deja solo:
+        // setUsers(clientes);
+        // Así se mostrarán los datos reales del backend.
+        // ------------------
+
+        if (clientes.length === 0) {
+          // Datos simulados si no hay clientes
+          setUsers([
+            { _id: '1', name: 'Juan Pérez', email: 'juan@correo.com', role: 'cliente' },
+            { _id: '2', name: 'Ana Gómez', email: 'ana@correo.com', role: 'cliente' }
+          ]);
+        } else {
+          setUsers(clientes);
+        }
       })
-      .catch(console.error);
+      .catch(() => {
+        // Si la API falla, mostrar datos simulados
+        setUsers([
+          { _id: '1', name: 'Juan Pérez', email: 'juan@correo.com', role: 'cliente' },
+          { _id: '2', name: 'Ana Gómez', email: 'ana@correo.com', role: 'cliente' }
+        ]);
+      });
   }, []);
 
   const handleView = user => {
-    alert(`ID: ${user._id}\nNombre: ${user.name}\nEmail: ${user.email}`);
+    window.location.href = `/admin/clients/${user._id}`;
+  };
+
+  const handleHistory = user => {
+    // Aquí podrías mostrar un modal o redirigir a una página de historial
+    alert(`Historial de compras de ${user.name} (ID: ${user._id})`);
   };
 
   const handleDelete = id => {
@@ -51,6 +79,12 @@ export default function UsersList() {
                     className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
                     Ver info
+                  </button>
+                  <button
+                    onClick={() => handleHistory(u)}
+                    className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+                  >
+                    Historial
                   </button>
                   <button
                     onClick={() => handleDelete(u._id)}

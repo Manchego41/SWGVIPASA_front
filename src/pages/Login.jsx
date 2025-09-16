@@ -87,32 +87,42 @@ export default function Login() {
         {error && <p className="text-red-600 mt-3 text-center">{error}</p>}
 
         {tab === 'login' ? (
-          <form onSubmit={submitLogin} className="space-y-4 mt-4">
-            <input
-              name="email"
-              type="email"
-              placeholder="Correo electrónico"
-              value={form.email}
-              onChange={handleChange}
-              required
-              className="w-full border p-2 rounded"
-            />
-            <input
-              name="password"
-              type="password"
-              placeholder="Contraseña"
-              value={form.password}
-              onChange={handleChange}
-              required
-              className="w-full border p-2 rounded"
-            />
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-            >
-              Entrar
-            </button>
-          </form>
+          <>
+            <form onSubmit={submitLogin} className="space-y-4 mt-4">
+              <input
+                name="email"
+                type="email"
+                placeholder="Correo electrónico"
+                value={form.email}
+                onChange={handleChange}
+                required
+                className="w-full border p-2 rounded"
+              />
+              <input
+                name="password"
+                type="password"
+                placeholder="Contraseña"
+                value={form.password}
+                onChange={handleChange}
+                required
+                className="w-full border p-2 rounded"
+              />
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+              >
+                Entrar
+              </button>
+            </form>
+            <div className="mt-4 text-center">
+              <a
+                href="/forgot-password"
+                className="text-blue-600 hover:underline text-sm"
+              >
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
+          </>
         ) : (
           <form onSubmit={submitRegister} className="space-y-4 mt-4">
             <input
