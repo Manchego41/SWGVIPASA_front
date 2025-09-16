@@ -20,6 +20,9 @@ import UserEditor from './pages/admin/UserEditor';
 import ProductsList from './pages/admin/ProductsList';
 import ProductEditor from './pages/admin/ProductEditor';
 
+// 🆕 Soporte (solo vista front)
+import SupportWidget from './components/SupportWidget';
+
 function App() {
   return (
     <BrowserRouter>
@@ -66,6 +69,9 @@ function App() {
           </Route>
         </Routes>
       </div>
+
+      {/* 🆕 Botón flotante + modal de chat de soporte visible en todas las páginas */}
+      <SupportWidget />
     </BrowserRouter>
   );
 }
