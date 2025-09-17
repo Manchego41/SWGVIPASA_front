@@ -12,7 +12,7 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen pt-12 bg-gray-100">
       {/* Sidebar */}
       <aside className="w-60 bg-gray-800 text-white p-5 flex flex-col justify-between">
         <div>
@@ -55,13 +55,14 @@ export default function AdminLayout() {
         </button>
       </aside>
 
+      
       {/* Main Content */}
-      <main className="flex-1 bg-gray-100 overflow-auto">
-         <Navbar />
-         <div className="p-6">
-           <Outlet />
-         </div>
-      </main>
+        <main className="flex-1 bg-gray-100 overflow-auto">
+          <div className="p-6">
+            <Outlet />
+          </div>
+</main>
+
     </div>
   );
 }
