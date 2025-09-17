@@ -42,6 +42,15 @@ export default function AdminLayout() {
             >
               Productos
             </NavLink>
+            {/* NUEVO ENLACE PARA STOCK */}
+            <NavLink
+              to="/admin/stock"
+              className={({ isActive }) =>
+                isActive ? 'text-blue-400' : 'hover:text-blue-300'
+              }
+            >
+              📦 Gestión de Stock
+            </NavLink>
           </nav>
         </div>
 
