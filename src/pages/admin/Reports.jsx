@@ -1,71 +1,62 @@
-// src/pages/admin/Reports.jsx
-import React from "react";
+// src/pages/admin/Reportes.jsx
+import { useEffect, useState } from "react";
+import API from "../../utils/api";
 
-export default function Reports() {
-  // Datos simulados (más adelante los traerás del backend)
-  const data = [
-    {
-      id: 1,
-      titulo: "Usuarios activos",
-      valor: 128,
-      descripcion: "Cantidad de usuarios que iniciaron sesión en los últimos 30 días",
-    },
-    {
-      id: 2,
-      titulo: "Productos en catálogo",
-      valor: 57,
-      descripcion: "Total de productos publicados en la tienda",
-    },
-    {
-      id: 3,
-      titulo: "Ventas del mes",
-      valor: 342,
-      descripcion: "Transacciones confirmadas en el último mes",
-    },
-    {
-      id: 4,
-      titulo: "Ingresos estimados",
-      valor: "$12,450",
-      descripcion: "Monto total aproximado generado este mes",
-    },
-  ];
+export default function Reportes() {
+  const [reports, setReports] = useState([]);
+
+  useEffect(() => {
+    API.get("/reports/summary")
+      .then((res) => setReports(res.data))
+      .catch((err) => {
+        console.error("Error cargando reportes:", err);
+        // fallback si la API no responde
+        setReports([
+          {
+            id: "fake1",
+            titulo: "Usuarios Registrados",
+            valor: 10,
+            descripcion: "Ejemplo de fallback: usuarios ficticioS",
+          },
+          {
+            id: "fake2",
+            titulo: "Productos Disponibles",
+            valor: 5,
+            descripcion: "Ejemplo de fallback: productos ficticios",
+          },
+        ]);
+      });
+  }, []);
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">📊 Reportes del sistema</h1>
-
-      <div className="overflow-x-auto rounded-2xl shadow-lg border border-gray-200">
-        <table className="min-w-full bg-white text-left">
-          <thead className="bg-blue-600 text-white">
-            <tr>
-              <th className="py-3 px-6">Reporte</th>
-              <th className="py-3 px-6">Valor</th>
-              <th className="py-3 px-6">Descripción</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((reporte, index) => (
-              <tr
-                key={reporte.id}
-                className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
-              >
-                <td className="py-4 px-6 font-medium">{reporte.titulo}</td>
-                <td className="py-4 px-6 text-blue-600 font-bold">
-                  {reporte.valor}
-                </td>
-                <td className="py-4 px-6 text-gray-600">
-                  {reporte.descripcion}
-                </td>
+      <h1 className="text-xl font-bold mb-4">Reportes del Sistema</h1>
+      <table className="min-w-full bg-white border rounded shadow">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="py-2 px-4 border-b">Reporte</th>
+            <th className="py-2 px-4 border-b">Valor</th>
+            <th className="py-2 px-4 border-b">Descripción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {reports.length > 0 ? (
+            reports.map((r) => (
+              <tr key={r.id}>
+                <td className="py-2 px-4 border-b">{r.titulo}</td>
+                <td className="py-2 px-4 border-b">{r.valor}</td>
+                <td className="py-2 px-4 border-b">{r.descripcion}</td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <p className="mt-6 text-gray-500 text-sm">
-        Nota: estos datos son de ejemplo y se actualizarán automáticamente cuando
-        el backend esté conectado.
-      </p>
+            ))
+          ) : (
+            <tr>
+              <td colSpan="3" className="py-2 px-4 text-center text-gray-500">
+                No hay reportes disponibles
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
