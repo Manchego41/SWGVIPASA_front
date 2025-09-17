@@ -1,66 +1,118 @@
+// src/pages/admin/ProductEditor.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import API from '../../utils/api';
+
+const EMPTY = { name: '', price: 0, countInStock: 0, description: '', imageUrl: '' };
 
 export default function ProductEditor() {
   const { id } = useParams();
+  const isNew = !id;
+  const [form, setForm] = useState(EMPTY);
+  const [error, setError] = useState('');
   const nav = useNavigate();
-  const isNew = id === 'new';
-  const [form, setForm] = useState({
-    name: '',
-    price: 0,
-    countInStock: 0,
-    description: '',
-  });
 
   useEffect(() => {
-    if (!isNew) {
-      axios.get(`/api/products/${id}`, {
-        headers: { Authorization: `Bearer ${JSON.parse(localStorage.user).token}` }
-      })
-      .then(res => setForm(res.data))
-      .catch(err => console.error(err));
-    }
+    const load = async () => {
+      if (!isNew) {
+        try {
+          const { data } = await API.get(`/products/${id}`);
+          setForm({
+            name: data.name ?? '',
+            price: data.price ?? 0,
+            countInStock: data.countInStock ?? 0,
+            description: data.description ?? '',
+            imageUrl: data.imageUrl ?? '',
+          });
+        } catch {
+          setError('No se pudo cargar el producto');
+        }
+      }
+    };
+    load();
   }, [id, isNew]);
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    const method = isNew ? axios.post : axios.put;
-    const url = isNew ? '/api/products' : `/api/products/${id}`;
-    method(url, form, {
-      headers: { Authorization: `Bearer ${JSON.parse(localStorage.user).token}` }
-    })
-    .then(() => nav('/admin/products'))
-    .catch(err => console.error(err));
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+
+  const payload = {
+    name: form.name,
+    price: Number(form.price),
+    countInStock: Number(form.countInStock),
+    description: form.description,
+    imageUrl: (form.imageUrl || '').trim(), // ⬅️ enviar imagen
   };
 
+  try {
+    if (isNew) {
+      await API.post('/products', payload);
+    } else {
+      await API.put(`/products/${id}`, payload);
+    }
+    nav('/admin/products');
+  } catch (e) {
+    console.error(e);
+    setError('Error guardando el producto (¿token/rol admin?)');
+  }
+};
+
+
   return (
-    <form onSubmit={handleSubmit} className="max-w-lg bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">
-        {isNew ? 'Crear Producto' : 'Editar Producto'}
-      </h2>
-      {['name','price','countInStock','description'].map(field => (
-        <div key={field} className="mb-3">
-          <label className="block mb-1 capitalize">{field}:</label>
-          {field !== 'description' ? (
-            <input
-              type={field === 'price' || field === 'countInStock' ? 'number' : 'text'}
-              value={form[field]}
-              onChange={e => setForm({ ...form, [field]: e.target.value })}
-              className="w-full border p-2"
-            />
-          ) : (
-            <textarea
-              value={form.description}
-              onChange={e => setForm({ ...form, description: e.target.value })}
-              className="w-full border p-2"
-            />
-          )}
+    <div className="p-6 max-w-xl">
+      <h1 className="text-xl font-bold mb-4">{isNew ? 'Nuevo producto' : 'Editar producto'}</h1>
+      {error && <p className="text-red-600 mb-3">{error}</p>}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block mb-1">Nombre</label>
+          <input className="w-full border p-2 rounded"
+                 value={form.name}
+                 onChange={e => setForm({ ...form, name: e.target.value })}
+                 required />
         </div>
-      ))}
-      <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded">
-        {isNew ? 'Crear' : 'Actualizar'}
-      </button>
-    </form>
+        <div>
+          <label className="block mb-1">Precio (S/.)</label>
+          <input type="number" step="0.01" className="w-full border p-2 rounded"
+                 value={form.price}
+                 onChange={e => setForm({ ...form, price: e.target.value })}
+                 required />
+        </div>
+        <div>
+          <label className="block mb-1">Stock</label>
+          <input type="number" className="w-full border p-2 rounded"
+                 value={form.countInStock}
+                 onChange={e => setForm({ ...form, countInStock: e.target.value })}
+                 required />
+        </div>
+        
+        <div>
+          <label className="block mb-1">URL de imagen</label>
+          <input
+                 className="w-full border p-2 rounded"
+                 placeholder="https://sitio.com/imagen.jpg"
+                 value={form.imageUrl}
+                 onChange={e => setForm({ ...form, imageUrl: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1">Descripción</label>
+          <textarea rows={4} className="w-full border p-2 rounded"
+                    value={form.description}
+                    onChange={e => setForm({ ...form, description: e.target.value })}/>
+        </div>
+
+        <div className="flex gap-2">
+          <button className="px-4 py-2 bg-blue-600 text-white rounded">
+            {isNew ? 'Crear' : 'Actualizar'}
+          </button>
+          <button type="button" onClick={() => nav('/admin/products')}
+                  className="px-4 py-2 bg-gray-200 rounded">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

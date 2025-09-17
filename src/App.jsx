@@ -17,8 +17,8 @@ import AccesoDenegado from './pages/AccesoDenegado';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersList from './pages/admin/UsersList';
 import UserEditor from './pages/admin/UserEditor';
-import ProductsList from './pages/admin/ProductsList';
-import ProductEditor from './pages/admin/ProductEditor';
+import ProductsList from "./pages/admin/ProductsList";
+import ProductEditor from "./pages/admin/ProductEditor";
 
 function App() {
   return (
@@ -52,18 +52,15 @@ function App() {
           <Route
             path="/admin/*"
             element={
-              <PrivateRoute roles={['administrador']}>
+              <PrivateRoute roles={['admin']}>
                 <AdminLayout />
               </PrivateRoute>
             }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<UsersList />} />
-            <Route path="users/:id" element={<UserEditor />} />
+               >
             <Route path="products" element={<ProductsList />} />
-            <Route path="products/:id" element={<ProductEditor />} />
             <Route path="products/new" element={<ProductEditor />} />
-          </Route>
+            <Route path="products/:id" element={<ProductEditor />} />
+           </Route>
         </Routes>
       </div>
     </BrowserRouter>

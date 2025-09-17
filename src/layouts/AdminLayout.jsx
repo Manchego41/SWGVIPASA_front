@@ -1,5 +1,6 @@
 // src/layouts/AdminLayout.jsx
 import React from 'react';
+import Navbar from '../components/Navbar';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 export default function AdminLayout() {
@@ -55,8 +56,11 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 bg-gray-100 p-6 overflow-auto">
-        <Outlet />
+      <main className="flex-1 bg-gray-100 overflow-auto">
+         <Navbar />
+         <div className="p-6">
+           <Outlet />
+         </div>
       </main>
     </div>
   );
