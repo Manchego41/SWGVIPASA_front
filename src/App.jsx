@@ -19,7 +19,10 @@ import UsersList from './pages/admin/UsersList';
 import UserEditor from './pages/admin/UserEditor';
 import ProductsList from './pages/admin/ProductsList';
 import ProductEditor from './pages/admin/ProductEditor';
-import StockManager from './pages/admin/StockManager'; 
+import StockManager from './pages/admin/StockManager';
+
+// 👇 importar con extensión por si el resolutor lo requiere
+import SupportWidget from './components/SupportWidget.jsx';
 
 function App() {
   return (
@@ -64,10 +67,13 @@ function App() {
             <Route path="products" element={<ProductsList />} />
             <Route path="products/:id" element={<ProductEditor />} />
             <Route path="products/new" element={<ProductEditor />} />
-            <Route path="stock" element={<StockManager />} /> 
+            <Route path="stock" element={<StockManager />} />
           </Route>
         </Routes>
       </div>
+
+      {/* Widget de soporte visible en todo el sitio */}
+      <SupportWidget />
     </BrowserRouter>
   );
 }
