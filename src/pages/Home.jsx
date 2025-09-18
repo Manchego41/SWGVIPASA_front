@@ -1,4 +1,4 @@
-// src/pages/Home.jsx (o donde esté tu listado de productos)
+// src/pages/Home.jsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate }                from 'react-router-dom';
 import API                            from '../utils/api';
@@ -8,6 +8,7 @@ import Contacto                       from './Contacto';
 export default function Home() {
   const [productos, setProductos] = useState([]); 
   const [search, setSearch]       = useState('');
+  const [cantidades, setCantidades] = useState({});
   const navigate                   = useNavigate();
 
   useEffect(() => {
@@ -15,6 +16,11 @@ export default function Home() {
       .then(res => {
         const lista = Array.isArray(res.data) ? res.data : res.data.products;
         setProductos(lista);
+
+        // Inicializamos cantidades con 1 por cada producto
+        const iniciales = {};
+        lista.forEach(p => { iniciales[p._id] = 1; });
+        setCantidades(iniciales);
       })
       .catch(console.error);
   }, []);
@@ -24,19 +30,16 @@ export default function Home() {
   );
 
   const handleAddToCart = prod => {
-    // 1) Recuperamos el objeto 'user' que guardamos al hacer login
     const stored = JSON.parse(localStorage.getItem('user') || 'null');
     const token  = stored?.token;
 
-    // 2) Si no hay token, vamos al login
     if (!token) {
       return navigate('/login');
     }
 
-    // 3) Si hay, añadimos al carrito
     API.post(
       '/cart',
-      { productId: prod._id },
+      { productId: prod._id, quantity: cantidades[prod._id] || 1 }, // 👈 ahora enviamos la cantidad
       { headers: { Authorization: `Bearer ${token}` } }
     )
       .then(() => {
@@ -46,6 +49,27 @@ export default function Home() {
         console.error(err);
         alert('Error al añadir al carrito');
       });
+  };
+
+  const handleChangeCantidad = (id, value, stock = 99) => {
+    let n = parseInt(value);
+    if (isNaN(n) || n < 1) n = 1;
+    if (n > stock) n = stock;
+    setCantidades(prev => ({ ...prev, [id]: n }));
+  };
+
+  const aumentar = (id, stock = 99) => {
+    setCantidades(prev => {
+      const actual = prev[id] || 1;
+      return { ...prev, [id]: Math.min(actual + 1, stock) };
+    });
+  };
+
+  const disminuir = id => {
+    setCantidades(prev => {
+      const actual = prev[id] || 1;
+      return { ...prev, [id]: Math.max(actual - 1, 1) };
+    });
   };
 
   return (
@@ -86,6 +110,32 @@ export default function Home() {
                 <p className="text-gray-800 font-bold mb-4">
                   S/ {prod.price.toFixed(2)}
                 </p>
+
+                {/* 👇 Input de cantidad con botones */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => disminuir(prod._id)}
+                      className="px-3 py-1 bg-gray-200 rounded-l hover:bg-gray-300 text-lg"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min="1"
+                      value={cantidades[prod._id] || 1}
+                      onChange={e => handleChangeCantidad(prod._id, e.target.value, prod.countInStock)}
+                      className="w-14 text-center border-t border-b border-gray-300"
+                    />
+                    <button
+                      onClick={() => aumentar(prod._id, prod.countInStock)}
+                      className="px-3 py-1 bg-gray-200 rounded-r hover:bg-gray-300 text-lg"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   onClick={() => handleAddToCart(prod)}
                   className="mt-auto bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
