@@ -10,7 +10,7 @@ export default function Profile() {
   useEffect(() => {
     async function fetchPurchases() {
       try {
-        const { data } = await API.get('/auth/purchases')
+        const { data } = await API.get('/auth/purchases') 
         setPurchases(data)
       } catch (err) {
         console.error('Error al cargar compras', err)
@@ -39,7 +39,7 @@ export default function Profile() {
           <li className="hover:text-blue-600 cursor-pointer">Información personal</li>
           <li className="hover:text-blue-600 cursor-pointer">Compras</li>
           <li className="hover:text-blue-600 cursor-pointer">Facturación</li>
-          <li className="hover:text-blue-600 cursor-pointer">Puntos de entrega</li>
+          <li className="hover:text-blue-600 cursor-pointer">Devoluciones</li>
           <li className="hover:text-blue-600 cursor-pointer">Configuración</li>
         </ul>
       </aside>
