@@ -1,69 +1,109 @@
 // src/pages/admin/UsersList.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import API from '../../utils/api';
 
 export default function UsersList() {
-  const [users, setUsers] = useState([]);
+  const stored = JSON.parse(localStorage.getItem('user') || 'null');
+  const token  = stored?.token;
+
+  const [rows, setRows]     = useState([]);
+  const [loading, setLoad]  = useState(true);
+  const [error, setError]   = useState('');
+  const [q, setQ]           = useState('');
+  const [onlyWithPurchases, setOnlyWithPurchases] = useState(false);
 
   useEffect(() => {
-    API.get('/users')
-      .then(res => {
-        // filtrar solo 'cliente'
-        const clientes = res.data.filter(u => u.role === 'cliente');
-        setUsers(clientes);
-      })
-      .catch(console.error);
-  }, []);
+    (async () => {
+      try {
+        setLoad(true);
+        const res = await API.get('/users/clients-with-count', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = Array.isArray(res.data) ? res.data : [];
+        setRows(data);
+        setError('');
+      } catch (e) {
+        console.error('UsersList fetch error:', e?.response || e);
+        const msg =
+          e?.response?.data?.message ||
+          e?.message ||
+          'No se pudo cargar la lista';
+        const detail = e?.response?.data?.detail;
+        setError(detail ? `${msg} (${detail})` : msg);
+      } finally {
+        setLoad(false);
+      }
+    })();
+  }, [token]);
 
-  const handleView = user => {
-    alert(`ID: ${user._id}\nNombre: ${user.name}\nEmail: ${user.email}`);
-  };
-
-  const handleDelete = id => {
-    if (!window.confirm('¿Borrar este usuario?')) return;
-    API.delete(`/users/${id}`)
-      .then(() => setUsers(users.filter(u => u._id !== id)))
-      .catch(console.error);
-  };
+  const filtered = useMemo(() => {
+    let list = rows;
+    if (onlyWithPurchases) {
+      list = list.filter(u => (u.purchasesCount || 0) > 0);
+    }
+    const s = q.trim().toLowerCase();
+    if (!s) return list;
+    return list.filter(u =>
+      (u.name || '').toLowerCase().includes(s) ||
+      (u.email || '').toLowerCase().includes(s)
+    );
+  }, [rows, q, onlyWithPurchases]);
 
   return (
-    <div>
-      <h2 className="text-2xl font-semibold mb-4">Usuarios (role: cliente)</h2>
-      {users.length === 0 ? (
-        <p>No hay usuarios cliente registrados.</p>
-      ) : (
-        <table className="min-w-full bg-white rounded shadow">
-          <thead>
-            <tr className="bg-gray-200">
-              <th className="px-4 py-2">Nombre</th>
-              <th className="px-4 py-2">Email</th>
-              <th className="px-4 py-2">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u._id} className="border-t">
-                <td className="px-4 py-2">{u.name}</td>
-                <td className="px-4 py-2">{u.email}</td>
-                <td className="px-4 py-2 space-x-2">
-                  <button
-                    onClick={() => handleView(u)}
-                    className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                  >
-                    Ver info
-                  </button>
-                  <button
-                    onClick={() => handleDelete(u._id)}
-                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                  >
-                    Borrar
-                  </button>
-                </td>
+    <section className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Usuarios (role: cliente)</h1>
+
+      <div className="mb-3 flex items-center gap-4">
+        <input
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          placeholder="Buscar por nombre o email…"
+          className="w-full max-w-sm border rounded px-3 py-2"
+        />
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={onlyWithPurchases}
+            onChange={e => setOnlyWithPurchases(e.target.checked)}
+          />
+          Solo con compras
+        </label>
+      </div>
+
+      <div className="bg-white rounded shadow overflow-x-auto">
+        {loading ? (
+          <div className="p-4 text-gray-600">Cargando…</div>
+        ) : error ? (
+          <div className="p-4 text-red-600">{error}</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-4 text-gray-600">Sin resultados.</div>
+        ) : (
+          <table className="w-full text-left">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-2">Nombre</th>
+                <th className="px-4 py-2">Email</th>
+                <th className="px-4 py-2">Rol</th>
+                <th className="px-4 py-2">Compras</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
+            </thead>
+            <tbody>
+              {filtered.map((u) => (
+                <tr key={u._id} className="border-t">
+                  <td className="px-4 py-2">{u.name}</td>
+                  <td className="px-4 py-2">{u.email}</td>
+                  <td className="px-4 py-2">
+                    <span className="inline-flex items-center rounded bg-emerald-100 text-emerald-700 px-2 py-0.5 text-sm">
+                      {u.role}
+                    </span>
+                  </td>
+                  <td className="px-4 py-2">{u.purchasesCount ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
   );
 }
