@@ -49,21 +49,27 @@ export default function Cart() {
       .catch(console.error);
   };
 
-  // 7) Iniciar proceso de pago
+  // 7) Registrar compra SIN pago real (checkout-local)
   const handleCheckout = async () => {
     try {
       setPaying(true);
       const res = await API.post(
-        '/cart/checkout',
+        '/cart/checkout-local',
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      const { init_point } = res.data;
-      // redirigimos al flujo de pago de MercadoPago
-      window.location.href = init_point;
+      if (res.status >= 200 && res.status < 300) {
+        // Éxito: historial creado y carrito vaciado en el back
+        alert('✅ Compra guardada en tu historial.');
+        // Redirigir al perfil (categoría Compras)
+        window.location.href = '/profile';
+        return;
+      }
+      alert('No se pudo registrar la compra');
     } catch (err) {
       console.error(err);
-      alert('Error al iniciar el pago');
+      const msg = err?.response?.data?.message || 'Error al registrar la compra';
+      alert(msg);
     } finally {
       setPaying(false);
     }
@@ -117,9 +123,9 @@ export default function Cart() {
             <button
               onClick={handleCheckout}
               disabled={paying}
-              className={`px-4 py-2 rounded text-white ${paying ? 'bg-gray-500' : 'bg-green-500'}`}
+              className={`px-4 py-2 rounded text-white ${paying ? 'bg-gray-500' : 'bg-green-600 hover:bg-green-700'}`}
             >
-              {paying ? 'Procesando...' : 'Pagar'}
+              {paying ? 'Guardando…' : 'Pagar'}
             </button>
           </div>
         </>
