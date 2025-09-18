@@ -13,6 +13,7 @@ import Login from './pages/Login';
 import Cart from './pages/Cart';
 import Profile from './pages/Profile';
 import AccesoDenegado from './pages/AccesoDenegado';
+import Catalogo from './pages/Catalogo';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersList from './pages/admin/UsersList';
@@ -38,6 +39,7 @@ function App() {
           <Route path="/productos" element={<Productos />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/catalogo" element={<Catalogo />} />
 
           {/* Carrito protegido: sólo usuarios logueados */}
           <Route
