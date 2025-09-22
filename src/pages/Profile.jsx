@@ -56,7 +56,6 @@ export default function Profile() {
           <li className="hover:text-blue-600 cursor-pointer">Información personal</li>
           <li className="text-blue-600 font-semibold cursor-default">Compras</li>
           <li className="hover:text-blue-600 cursor-pointer">Devoluciones</li>
-          <li className="hover:text-blue-600 cursor-pointer">Configuración</li>
         </ul>
       </aside>
 

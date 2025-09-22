@@ -8,6 +8,7 @@ import AdminLayout from './layouts/AdminLayout';
 
 import Home from './pages/Home';
 import Productos from './pages/Productos';
+import Catalog from './pages/Catalogo.jsx';
 import Contacto from './pages/Contacto';
 import Login from './pages/Login';
 import Cart from './pages/Cart';
@@ -21,6 +22,7 @@ import ProductEditor from './pages/admin/ProductEditor';
 import StockManager from './pages/admin/StockManager';
 
 import SupportWidget from './components/SupportWidget.jsx';
+import Catalogo from './pages/Catalogo.jsx';
 
 // Wrapper que aplica estilos distintos si estamos en /admin
 function AppShell() {
@@ -41,6 +43,7 @@ function AppShell() {
           {/* Públicas */}
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
+          <Route path="/catalogo" element={<Catalogo />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
 

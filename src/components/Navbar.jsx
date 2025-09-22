@@ -57,6 +57,16 @@ export default function Navbar() {
           </li>
 
           <li>
+            <NavLink
+              to="/catalogo"
+              end
+              className="text-white hover:text-[#00AEEF]"
+            >
+              Catálogo
+            </NavLink>
+          </li>
+
+          <li>
             <a
               href="#contacto"
               className="text-white hover:text-[#00AEEF]"
