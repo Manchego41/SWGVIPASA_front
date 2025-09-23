@@ -3,68 +3,63 @@ import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 export default function AdminLayout() {
-  const nav = useNavigate();
+  const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const linkBase =
+    'block px-3 py-2 rounded text-gray-200 hover:text-white hover:bg-white/10';
+  const linkActive =
+    'block px-3 py-2 rounded bg-white/15 text-white font-semibold';
+
+  const logout = () => {
     localStorage.removeItem('user');
-    nav('/login');
+    navigate('/login');
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="min-h-screen flex bg-gray-100">
       {/* Sidebar */}
-      <aside className="w-60 bg-gray-800 text-white p-5 flex flex-col justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-6">Panel Admin</h2>
-          <nav className="flex flex-col space-y-4">
-            <NavLink
-              to="/admin"
-              end
-              className={({ isActive }) =>
-                isActive ? 'text-blue-400' : 'hover:text-blue-300'
-              }
-            >
-              Dashboard
-            </NavLink>
-            <NavLink
-              to="/admin/users"
-              className={({ isActive }) =>
-                isActive ? 'text-blue-400' : 'hover:text-blue-300'
-              }
-            >
-              Usuarios
-            </NavLink>
-            <NavLink
-              to="/admin/products"
-              className={({ isActive }) =>
-                isActive ? 'text-blue-400' : 'hover:text-blue-300'
-              }
-            >
-              Productos
-            </NavLink>
-            {/* NUEVO ENLACE PARA STOCK */}
-            <NavLink
-              to="/admin/stock"
-              className={({ isActive }) =>
-                isActive ? 'text-blue-400' : 'hover:text-blue-300'
-              }
-            >
-              📦 Gestión de Stock
-            </NavLink>
-          </nav>
+      <aside className="w-60 bg-slate-900 text-white flex flex-col">
+        <div className="px-4 py-4 border-b border-white/10">
+          <h2 className="text-xl font-bold">Panel Admin</h2>
         </div>
 
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 text-white py-2 rounded mt-6"
-        >
-          Cerrar Sesión
-        </button>
+        <nav className="flex-1 p-3 space-y-1">
+          <NavLink
+            to="/admin"
+            end
+            className={({ isActive }) => (isActive ? linkActive : linkBase)}
+          >
+            Dashboard
+          </NavLink>
+
+          <NavLink
+            to="/admin/users"
+            className={({ isActive }) => (isActive ? linkActive : linkBase)}
+          >
+            Usuarios
+          </NavLink>
+
+          {/* 👇 Renombrado: Gestión de Productos (antes “Gestión de Stock”) */}
+          <NavLink
+            to="/admin/stock"
+            className={({ isActive }) => (isActive ? linkActive : linkBase)}
+          >
+            Gestión de Productos
+          </NavLink>
+        </nav>
+
+        <div className="p-3 border-t border-white/10">
+          <button
+            onClick={logout}
+            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded"
+          >
+            Cerrar Sesión
+          </button>
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 bg-gray-100 p-6 overflow-auto">
+      {/* Contenido */}
+      <main className="flex-1">
         <Outlet />
       </main>
     </div>

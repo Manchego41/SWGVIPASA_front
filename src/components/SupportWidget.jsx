@@ -76,7 +76,6 @@ export default function SupportWidget() {
                   Enviar
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-2">*Solo vista (sin backend).</p>
             </div>
           </div>
         </div>

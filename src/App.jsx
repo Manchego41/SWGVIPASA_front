@@ -1,6 +1,6 @@
 // src/App.jsx
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
@@ -8,6 +8,7 @@ import AdminLayout from './layouts/AdminLayout';
 
 import Home from './pages/Home';
 import Productos from './pages/Productos';
+import Catalog from './pages/Catalogo.jsx';
 import Contacto from './pages/Contacto';
 import Login from './pages/Login';
 import Cart from './pages/Cart';
@@ -18,30 +19,37 @@ import Catalogo from './pages/Catalogo';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersList from './pages/admin/UsersList';
 import UserEditor from './pages/admin/UserEditor';
-import ProductsList from './pages/admin/ProductsList';
 import ProductEditor from './pages/admin/ProductEditor';
 import StockManager from './pages/admin/StockManager';
 
-// 👇 importar con extensión por si el resolutor lo requiere
 import SupportWidget from './components/SupportWidget.jsx';
+import Catalogo from './pages/Catalogo.jsx';
 
-function App() {
+// Wrapper que aplica estilos distintos si estamos en /admin
+function AppShell() {
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith('/admin');
+
+  // Para el sitio normal: pt-16 (debajo del navbar) y fondo claro
+  // Para admin: SIN pt-16 aquí (lo maneja AdminLayout) y mismo bg gris
+  const wrapperClass = isAdmin
+    ? 'min-h-screen bg-gray-100'
+    : 'pt-16 min-h-screen bg-gray-50';
+
   return (
-    <BrowserRouter>
-      {/* Navbar global */}
+    <>
       <Navbar />
-
-      {/* Espacio para el header fijo */}
-      <div className="pt-16">
+      <div className={wrapperClass}>
         <Routes>
-          {/* Rutas públicas */}
+          {/* Públicas */}
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
+          <Route path="/catalogo" element={<Catalogo />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
           <Route path="/catalogo" element={<Catalogo />} />
 
-          {/* Carrito protegido: sólo usuarios logueados */}
+          {/* Protegidas */}
           <Route
             path="/cart"
             element={
@@ -54,7 +62,7 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/acceso-denegado" element={<AccesoDenegado />} />
 
-          {/* Rutas de administrador protegidas */}
+          {/* Admin */}
           <Route
             path="/admin/*"
             element={
@@ -66,18 +74,24 @@ function App() {
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UsersList />} />
             <Route path="users/:id" element={<UserEditor />} />
-            <Route path="products" element={<ProductsList />} />
-            <Route path="products/:id" element={<ProductEditor />} />
-            <Route path="products/new" element={<ProductEditor />} />
+
+            {/* Gestión de Productos */}
             <Route path="stock" element={<StockManager />} />
+            <Route path="products/new" element={<ProductEditor />} />
+            <Route path="products/:id" element={<ProductEditor />} />
           </Route>
         </Routes>
       </div>
 
-      {/* Widget de soporte visible en todo el sitio */}
       <SupportWidget />
-    </BrowserRouter>
+    </>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
+    </BrowserRouter>
+  );
+}
