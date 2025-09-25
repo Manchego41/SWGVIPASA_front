@@ -55,14 +55,7 @@ export default function Navbar() {
               Productos
             </a>
           </li>
-<li>
-  <NavLink
-    to="/catalogo"
-    className="text-white hover:text-[#00AEEF]"
-  >
-    Catálogo
-  </NavLink>
-</li>
+
           <li>
             <NavLink
               to="/catalogo"

@@ -1,6 +1,7 @@
 // src/pages/Profile.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import API from '../utils/api';
+import ModalVerCompra from '../components/ModalVerCompra';
 
 export default function Profile() {
   const stored = JSON.parse(localStorage.getItem('user') || 'null');
@@ -10,6 +11,7 @@ export default function Profile() {
   const [search, setSearch]       = useState('');
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
+  const [selectedPurchase, setSelectedPurchase] = useState(null);
 
   // Cargar compras desde tu API: /api/purchases/mine
   useEffect(() => {
@@ -85,28 +87,39 @@ export default function Profile() {
             {filtered.map(p => (
               <div
                 key={p._id}
-                className="bg-white rounded-lg p-4 shadow"
+                className="bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow"
               >
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold">
-                    Compra #{String(p._id).slice(-6)}
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <div className="font-semibold text-lg">
+                      Compra #{String(p._id).slice(-6).toUpperCase()}
+                    </div>
+                    <div className="text-gray-500 text-sm">
+                      {p.createdAt ? new Date(p.createdAt).toLocaleDateString('es-PE', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      }) : ''}
+                    </div>
                   </div>
-                  <div className="text-gray-500 text-sm">
-                    {p.createdAt ? new Date(p.createdAt).toLocaleString() : ''}
-                  </div>
+                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {p.status === 'recorded' ? 'Registrada' : 'Completada'}
+                  </span>
                 </div>
 
                 {/* Items */}
-                <div className="mt-3 divide-y">
-                  {(p.items || []).map((it, idx) => (
+                <div className="mb-4">
+                  {(p.items || []).slice(0, 3).map((it, idx) => (
                     <div
                       key={idx}
-                      className="py-2 flex justify-between items-center"
+                      className="py-2 flex justify-between items-center border-b border-gray-100 last:border-b-0"
                     >
                       <div className="flex-1">
                         <div className="font-medium">{it.name}</div>
                         <div className="text-gray-500 text-sm">
-                          Cantidad: {it.quantity}
+                          Cantidad: {it.quantity} × S/ {Number(it.price).toFixed(2)}
                         </div>
                       </div>
                       <div className="font-semibold">
@@ -114,19 +127,32 @@ export default function Profile() {
                       </div>
                     </div>
                   ))}
+                  {(p.items || []).length > 3 && (
+                    <div className="text-center text-blue-600 text-sm mt-2">
+                      +{(p.items || []).length - 3} productos más...
+                    </div>
+                  )}
                 </div>
 
                 {/* Total */}
-                <div className="mt-3 text-right font-semibold">
-                  Total: S/ {Number(p.total).toFixed(2)}
+                <div className="flex justify-between items-center mb-4">
+                  <div className="text-lg font-bold text-gray-900">
+                    Total: S/ {Number(p.total).toFixed(2)}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {(p.items || []).length} producto{(p.items || []).length !== 1 ? 's' : ''}
+                  </div>
                 </div>
 
-                {/* Acciones (placeholders) */}
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <button className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">
+                {/* Acciones */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => setSelectedPurchase(p._id)}
+                    className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                  >
                     Ver compra
                   </button>
-                  <button className="w-full bg-blue-100 text-blue-600 py-2 rounded hover:bg-blue-200">
+                  <button className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors font-medium">
                     Hacer Devolución
                   </button>
                 </div>
@@ -134,6 +160,13 @@ export default function Profile() {
             ))}
           </div>
         )}
+
+        {/* Modal de Ver Compra */}
+        <ModalVerCompra 
+          purchaseId={selectedPurchase}
+          isOpen={!!selectedPurchase}
+          onClose={() => setSelectedPurchase(null)}
+        />
       </main>
     </div>
   );

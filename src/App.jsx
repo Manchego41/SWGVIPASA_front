@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
 import AdminLayout from './layouts/AdminLayout';
+import ModalVerCompra from './components/ModalVerCompra';
 
 import Home from './pages/Home';
 import Productos from './pages/Productos';
@@ -14,7 +15,6 @@ import Login from './pages/Login';
 import Cart from './pages/Cart';
 import Profile from './pages/Profile';
 import AccesoDenegado from './pages/AccesoDenegado';
-import Catalogo from './pages/Catalogo';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersList from './pages/admin/UsersList';
@@ -47,7 +47,6 @@ function AppShell() {
           <Route path="/catalogo" element={<Catalogo />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/catalogo" element={<Catalogo />} />
 
           {/* Protegidas */}
           <Route
@@ -84,6 +83,7 @@ function AppShell() {
       </div>
 
       <SupportWidget />
+      <ModalVerCompra />
     </>
   );
 }
