@@ -3,20 +3,41 @@ import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import ProfileMenu from './ProfileMenu';
 
+/** Helpers seguros para leer/escribir sesión */
+function safeParse(raw) {
+  try {
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function getStoredUser() {
+  const raw = localStorage.getItem('user');
+  const parsed = safeParse(raw);
+  // Si estaba corrupto, lo limpiamos para no volver a fallar
+  if (!parsed && raw) localStorage.removeItem('user');
+  return parsed;
+}
+
 export default function Navbar() {
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
 
-  // No mostrar en rutas de admin
+  // No mostrar la barra en rutas de admin
   if (location.pathname.startsWith('/admin')) return null;
 
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  // ✅ Lectura segura del usuario (no explota si hay JSON inválido)
+  const user = getStoredUser();
 
   // Logout: borrar datos y llevar a login
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+    } finally {
+      navigate('/login');
+    }
   };
 
   return (
@@ -38,39 +59,25 @@ export default function Navbar() {
         {/* Links */}
         <ul className="flex space-x-6 items-center">
           <li>
-            <NavLink
-              to="/"
-              end
-              className="text-white hover:text-[#00AEEF]"
-            >
+            <NavLink to="/" end className="text-white hover:text-[#00AEEF]">
               Home
             </NavLink>
           </li>
 
           <li>
-            <a
-              href="#productos"
-              className="text-white hover:text-[#00AEEF]"
-            >
+            <a href="#productos" className="text-white hover:text-[#00AEEF]">
               Productos
             </a>
           </li>
 
           <li>
-            <NavLink
-              to="/catalogo"
-              end
-              className="text-white hover:text-[#00AEEF]"
-            >
+            <NavLink to="/catalogo" end className="text-white hover:text-[#00AEEF]">
               Catálogo
             </NavLink>
           </li>
 
           <li>
-            <a
-              href="#contacto"
-              className="text-white hover:text-[#00AEEF]"
-            >
+            <a href="#contacto" className="text-white hover:text-[#00AEEF]">
               Contáctenos
             </a>
           </li>
@@ -89,14 +96,12 @@ export default function Navbar() {
           {user && user.role !== 'administrador' && (
             <>
               <li>
-                <NavLink
-                  to="/cart"
-                  className="text-white hover:text-[#00AEEF]"
-                >
+                <NavLink to="/cart" className="text-white hover:text-[#00AEEF]">
                   Carrito
                 </NavLink>
               </li>
               <li>
+                {/* Menu del perfil (mantiene tus opciones) */}
                 <ProfileMenu user={user} onLogout={handleLogout} />
               </li>
             </>
@@ -104,10 +109,7 @@ export default function Navbar() {
 
           {user && user.role === 'administrador' && (
             <li>
-              <NavLink
-                to="/admin"
-                className="text-white hover:text-[#00AEEF]"
-              >
+              <NavLink to="/admin" className="text-white hover:text-[#00AEEF]">
                 Panel Admin
               </NavLink>
             </li>
