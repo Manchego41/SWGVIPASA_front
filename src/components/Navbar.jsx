@@ -3,6 +3,7 @@ import React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import ProfileMenu from './ProfileMenu';
 
+
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
