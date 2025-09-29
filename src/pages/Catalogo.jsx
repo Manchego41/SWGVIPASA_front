@@ -1,22 +1,21 @@
 // src/pages/Catalogo.jsx
 import React, { useEffect, useMemo, useState } from "react";
-import API from "../utils/api"; // para llamar al backend
-import { 
-  FiSearch, 
-  FiFilter, 
-  FiChevronLeft, 
-  FiChevronRight, 
+import { useNavigate } from "react-router-dom";
+import API from "../utils/api";
+import {
+  FiSearch,
+  FiFilter,
+  FiChevronLeft,
+  FiChevronRight,
   FiBox,
   FiDollarSign,
   FiX,
   FiGrid,
   FiInfo,
   FiAward,
-  FiStar
 } from "react-icons/fi";
 
-const PAGE_SIZE = 12; // Cantidad de productos por página
-// Opciones de ordenamiento
+const PAGE_SIZE = 12;
 const SORTS = [
   { value: "name_asc",  label: "Nombre (A-Z)" },
   { value: "name_desc", label: "Nombre (Z-A)" },
@@ -24,48 +23,52 @@ const SORTS = [
   { value: "price_desc",label: "Precio: Mayor a Menor" },
 ];
 
+// helpers de sesión
+const safeParse = (r) => { try { return r ? JSON.parse(r) : null; } catch { return null; } };
+const getUser = () => {
+  const raw = localStorage.getItem('user');
+  const u = safeParse(raw);
+  if (!u && raw) localStorage.removeItem('user');
+  return u;
+};
+
 export default function Catalogo() {
+  const navigate = useNavigate();
+
   // Estados principales
-  const [all, setAll] = useState([]);       // Todos los productos del backend
-  const [loading, setLoading] = useState(true); // Controla si está cargando
-  const [error, setError] = useState("");   // Mensaje de error si falla la API
-  const [showFilters, setShowFilters] = useState(false); // Mostrar/ocultar panel de filtros
+  const [all, setAll] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]   = useState("");
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Filtros de búsqueda
-  const [search, setSearch] = useState("");         // texto a buscar
-  const [min, setMin] = useState("");               // precio mínimo
-  const [max, setMax] = useState("");               // precio máximo
-  const [availability, setAvailability] = useState(""); // disponibilidad
-  const [sort, setSort] = useState("name_asc");     // orden seleccionado
-  const [page, setPage] = useState(1);              // página actual
+  // Filtros
+  const [search, setSearch] = useState("");
+  const [min, setMin]       = useState("");
+  const [max, setMax]       = useState("");
+  const [availability, setAvailability] = useState("");
+  const [sort, setSort]     = useState("name_asc");
+  const [page, setPage]     = useState(1);
 
-  // Cargar productos API
+  // UI: botón agregar en proceso
+  const [adding, setAdding] = useState(null); // id de producto
+
+  // Cargar productos
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setError("");
-    
-    console.log("🔄 Cargando productos desde:", `${API.defaults.baseURL}/products`);
-    
+
     API.get("/products")
       .then((response) => {
         if (!mounted) return;
-        
-        // Usar el mismo formato que Productos.jsx
         const productosData = response.data.products || response.data;
-        
-        console.log("✅ Productos recibidos:", productosData);
         setAll(Array.isArray(productosData) ? productosData : []);
       })
-      .catch((error) => {
-        console.error("❌ Error cargando productos:", error);
+      .catch((err) => {
         if (!mounted) return;
-        setError(error.response?.data?.message || "Error al cargar el catálogo. Verifica la conexión.");
+        setError(err.response?.data?.message || "Error al cargar el catálogo. Verifica la conexión.");
       })
-      .finally(() => {
-        if (!mounted) return;
-        setLoading(false);
-      });
+      .finally(() => { if (mounted) setLoading(false); });
 
     return () => { mounted = false; };
   }, []);
@@ -74,16 +77,14 @@ export default function Catalogo() {
   const processed = useMemo(() => {
     let list = [...all];
 
-    // búsqueda
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(p =>
-        p.name?.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q)
+        (p.name || "").toLowerCase().includes(q) ||
+        (p.description || "").toLowerCase().includes(q)
       );
     }
 
-    // rango precio
     const minVal = min === "" ? -Infinity : Number(min);
     const maxVal = max === "" ?  Infinity : Number(max);
     list = list.filter(p => {
@@ -91,11 +92,9 @@ export default function Catalogo() {
       return price >= minVal && price <= maxVal;
     });
 
-    // disponibilidad
     if (availability === "available") list = list.filter(p => (p.countInStock ?? 0) > 0);
     if (availability === "out")       list = list.filter(p => (p.countInStock ?? 0) <= 0);
 
-    // orden
     list.sort((a,b) => {
       if (sort === "name_asc")  return (a.name||"").localeCompare(b.name||"");
       if (sort === "name_desc") return (b.name||"").localeCompare(a.name||"");
@@ -116,7 +115,6 @@ export default function Catalogo() {
 
   useEffect(() => { setPage(1); }, [search, min, max, availability, sort]);
 
-  // Resetear filtros
   const resetFilters = () => {
     setSearch("");
     setMin("");
@@ -125,23 +123,42 @@ export default function Catalogo() {
     setSort("name_asc");
   };
 
+  // Agregar al carrito
+  const addToCart = async (productId) => {
+    const user = getUser();
+    if (!user?.token) return navigate('/login');
+
+    try {
+      setAdding(productId);
+      await API.post(
+        '/cart',
+        { productId },
+        { headers: { Authorization: `Bearer ${user.token}` } }
+      );
+      alert('Producto agregado al carrito');
+    } catch (e) {
+      console.error(e);
+      alert('No se pudo agregar al carrito');
+    } finally {
+      setAdding(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header con diseño elegante */}
+        {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center p-2 bg-blue-100 rounded-full mb-4">
             <FiAward className="h-8 w-8 text-blue-600" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-3">
-            Catálogo de Productos
-          </h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-3">Catálogo de Productos</h1>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             Descubre nuestra exclusiva selección de productos de alta calidad
           </p>
         </div>
 
-        {/* Barra de búsqueda elegante */}
+        {/* Buscador y filtros */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -155,7 +172,7 @@ export default function Catalogo() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          
+
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
@@ -165,7 +182,7 @@ export default function Catalogo() {
           </button>
         </div>
 
-        {/* Panel de filtros elegante */}
+        {/* Panel filtros */}
         {showFilters && (
           <div className="bg-white rounded-2xl shadow-md p-6 mb-8 border border-gray-100">
             <div className="flex justify-between items-center mb-6">
@@ -180,7 +197,7 @@ export default function Catalogo() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Filtro de precio */}
+              {/* Rango de precio */}
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-3">
                   <FiDollarSign className="h-4 w-4 text-blue-500" />
@@ -212,7 +229,7 @@ export default function Catalogo() {
                 </div>
               </div>
 
-              {/* Filtro de disponibilidad */}
+              {/* Disponibilidad */}
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-3">
                   <FiBox className="h-4 w-4 text-blue-500" />
@@ -229,7 +246,7 @@ export default function Catalogo() {
                 </select>
               </div>
 
-              {/* Ordenamiento */}
+              {/* Orden */}
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-3">
                   <FiFilter className="h-4 w-4 text-blue-500" />
@@ -247,13 +264,12 @@ export default function Catalogo() {
           </div>
         )}
 
-        {/* Información de resultados */}
+        {/* Info resultados */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-2">
           <p className="text-gray-700 text-lg font-medium">
             <span className="text-blue-600">{paged.length}</span> de{" "}
             <span className="text-blue-600">{processed.length}</span> productos encontrados
           </p>
-          
           {processed.length > 0 && (
             <div className="flex items-center gap-2 text-sm text-gray-500 bg-blue-50 px-3 py-1 rounded-full">
               <FiInfo className="h-4 w-4" />
@@ -262,7 +278,7 @@ export default function Catalogo() {
           )}
         </div>
 
-        {/* Estados de carga con skeleton elegante */}
+        {/* Skeleton carga */}
         {loading && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" role="status">
             {Array.from({ length: PAGE_SIZE }).map((_, i) => (
@@ -290,7 +306,7 @@ export default function Catalogo() {
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Error al cargar</h3>
             <p className="text-gray-600 mb-6">{error}</p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
             >
@@ -324,63 +340,85 @@ export default function Catalogo() {
           </div>
         )}
 
-        {/* Grid de productos elegante */}
+        {/* Grid de productos */}
         {!loading && !error && processed.length > 0 && (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {paged.map((prod) => (
-                <div key={prod._id} className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col border border-gray-100 group">
-                  <div className="relative overflow-hidden">
-                    <img
-                      src={prod.imageUrl}
-                      alt={prod.name}
-                      className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.target.src = "https://via.placeholder.com/300x200?text=Imagen+no+disponible";
-                      }}
-                    />
-                    <div className="absolute top-3 right-3">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${(prod.countInStock ?? 0) > 0 
-                        ? 'bg-green-100 text-green-800 border border-green-200' 
-                        : 'bg-red-100 text-red-800 border border-red-200'}`}
-                      >
-                        {(prod.countInStock ?? 0) > 0 ? 'Disponible' : 'Agotado'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="p-5 flex-1 flex flex-col">
-                    <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
-                      {prod.name}
-                    </h3>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-3 flex-1">
-                      {prod.description || "Sin descripción disponible"}
-                    </p>
-                    
-                    <div className="mt-auto space-y-3 pt-4 border-t border-gray-100">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-2xl font-bold text-blue-600">S/ {Number(prod.price).toFixed(2)}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-gray-500">
-                          <FiBox className="h-4 w-4" />
-                          <span>{prod.countInStock} und.</span>
-                        </div>
+              {paged.map((prod) => {
+                const inStock = (prod.countInStock ?? 0) > 0;
+                return (
+                  <div
+                    key={prod._id}
+                    className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col border border-gray-100 group"
+                  >
+                    {/* Imagen */}
+                    <div className="relative overflow-hidden">
+                      <img
+                        src={prod.imageUrl || '/placeholder.png'}
+                        alt={prod.name}
+                        className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
+                        loading="lazy"
+                        onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/300x200?text=Imagen+no+disponible"; }}
+                      />
+                      <div className="absolute top-3 right-3">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            inStock
+                              ? 'bg-green-100 text-green-800 border border-green-200'
+                              : 'bg-red-100 text-red-800 border border-red-200'
+                          }`}
+                        >
+                          {inStock ? 'Disponible' : 'Agotado'}
+                        </span>
                       </div>
                     </div>
+
+                    {/* Contenido */}
+                    <div className="p-5 flex-1 flex flex-col">
+                      <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
+                        {prod.name}
+                      </h3>
+
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-3">
+                        {prod.description || "Sin descripción disponible"}
+                      </p>
+
+                      {/* Precio PEQUEÑO debajo de la descripción */}
+                      <div className="text-[#0B2B3C] font-semibold">
+                        <span className="text-base">S/ {Number(prod.price || 0).toFixed(2)}</span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          <FiBox className="inline-block -mt-0.5 mr-1" />
+                          {(prod.countInStock ?? 0)} und.
+                        </span>
+                      </div>
+
+                      {/* Botón debajo del precio */}
+                      <button
+                        disabled={!inStock || adding === prod._id}
+                        onClick={() => addToCart(prod._id)}
+                        className={`mt-4 w-full rounded-lg py-2.5 text-white font-medium ${
+                          !inStock
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : adding === prod._id
+                            ? 'bg-blue-400'
+                            : 'bg-blue-600 hover:bg-blue-700'
+                        }`}
+                      >
+                        {!inStock ? 'Sin stock' : adding === prod._id ? 'Agregando…' : 'Agregar al carrito'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Paginación elegante */}
+            {/* Paginación */}
             {pages > 1 && (
               <div className="mt-12 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <p className="text-sm text-gray-700">
                   Página <span className="font-medium">{page}</span> de <span className="font-medium">{pages}</span>
                 </p>
-                
+
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -390,7 +428,7 @@ export default function Catalogo() {
                     <FiChevronLeft className="h-4 w-4" />
                     Anterior
                   </button>
-                  
+
                   <div className="flex items-center gap-1">
                     {Array.from({ length: Math.min(5, pages) }, (_, i) => {
                       let pageNum;
@@ -403,7 +441,6 @@ export default function Catalogo() {
                       } else {
                         pageNum = page - 2 + i;
                       }
-                      
                       return (
                         <button
                           key={pageNum}
@@ -418,12 +455,9 @@ export default function Catalogo() {
                         </button>
                       );
                     })}
-                    
-                    {pages > 5 && page < pages - 2 && (
-                      <span className="px-2 text-gray-500">...</span>
-                    )}
+                    {pages > 5 && page < pages - 2 && <span className="px-2 text-gray-500">...</span>}
                   </div>
-                  
+
                   <button
                     onClick={() => setPage((p) => Math.min(pages, p + 1))}
                     disabled={page >= pages}

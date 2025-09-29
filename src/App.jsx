@@ -1,14 +1,14 @@
 // src/App.jsx
 import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import Navbar from './components/Navbar';
 import PrivateRoute from './components/PrivateRoute';
 import AdminLayout from './layouts/AdminLayout';
+import SupportWidget from './components/SupportWidget';   // ⬅️ agregado
 
 import Home from './pages/Home';
-import Productos from './pages/Productos';
-import Catalog from './pages/Catalogo.jsx';
+import Catalogo from './pages/Catalogo';
 import Contacto from './pages/Contacto';
 import Login from './pages/Login';
 import Cart from './pages/Cart';
@@ -18,36 +18,25 @@ import AccesoDenegado from './pages/AccesoDenegado';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import UsersList from './pages/admin/UsersList';
 import UserEditor from './pages/admin/UserEditor';
+import ProductsList from './pages/admin/ProductsList';
 import ProductEditor from './pages/admin/ProductEditor';
 import StockManager from './pages/admin/StockManager';
 
-import SupportWidget from './components/SupportWidget.jsx';
-import Catalogo from './pages/Catalogo.jsx';
-
-// Wrapper que aplica estilos distintos si estamos en /admin
-function AppShell() {
-  const { pathname } = useLocation();
-  const isAdmin = pathname.startsWith('/admin');
-
-  // Para el sitio normal: pt-16 (debajo del navbar) y fondo claro
-  // Para admin: SIN pt-16 aquí (lo maneja AdminLayout) y mismo bg gris
-  const wrapperClass = isAdmin
-    ? 'min-h-screen bg-gray-100'
-    : 'pt-16 min-h-screen bg-gray-50';
-
+function App() {
   return (
-    <>
+    <BrowserRouter>
       <Navbar />
-      <div className={wrapperClass}>
+
+      <div className="pt-16">
         <Routes>
-          {/* Públicas */}
+          {/* públicas */}
           <Route path="/" element={<Home />} />
-          <Route path="/productos" element={<Productos />} />
           <Route path="/catalogo" element={<Catalogo />} />
+          <Route path="/productos" element={<Navigate to="/catalogo" replace />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
 
-          {/* Protegidas */}
+          {/* privadas */}
           <Route
             path="/cart"
             element={
@@ -60,7 +49,7 @@ function AppShell() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/acceso-denegado" element={<AccesoDenegado />} />
 
-          {/* Admin */}
+          {/* admin */}
           <Route
             path="/admin/*"
             element={
@@ -72,24 +61,18 @@ function AppShell() {
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<UsersList />} />
             <Route path="users/:id" element={<UserEditor />} />
-
-            {/* Gestión de Productos */}
-            <Route path="stock" element={<StockManager />} />
-            <Route path="products/new" element={<ProductEditor />} />
+            <Route path="products" element={<ProductsList />} />
             <Route path="products/:id" element={<ProductEditor />} />
+            <Route path="products/new" element={<ProductEditor />} />
+            <Route path="stock" element={<StockManager />} />
           </Route>
         </Routes>
       </div>
 
+      {/* Botón / Chatbot flotante */}
       <SupportWidget />
-    </>
-  );
-}
-
-export default function App() {
-  return (
-    <BrowserRouter>
-      <AppShell />
     </BrowserRouter>
   );
 }
+
+export default App;
