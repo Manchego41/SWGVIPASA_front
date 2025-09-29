@@ -23,6 +23,7 @@ import StockManager from './pages/admin/StockManager';
 
 import SupportWidget from './components/SupportWidget.jsx';
 import Catalogo from './pages/Catalogo.jsx';
+import DevolucionModal from './components/DevolucionModal.jsx';
 
 // Wrapper que aplica estilos distintos si estamos en /admin
 function AppShell() {
