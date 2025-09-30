@@ -1,75 +1,32 @@
 // src/pages/Cart.jsx
-import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import API from '../utils/api';
+import React, { useMemo, useState } from "react";
+import { Navigate } from "react-router-dom";
+import API from "../utils/api";
+import { useCart } from "../context/CartContext";
+import { FiMinus, FiPlus, FiTrash2 } from "react-icons/fi";
 
 export default function Cart() {
-  // 1) Redirección si no hay token
-  const stored = JSON.parse(localStorage.getItem('user') || 'null');
-  const token  = stored?.token;
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
+  // Redirección si no hay token
+  const stored = JSON.parse(localStorage.getItem("user") || "null");
+  const token = stored?.token;
+  if (!token) return <Navigate to="/login" replace />;
 
-  // 2) Estados
-  const [items, setItems]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [paying, setPaying]   = useState(false);
+  const headers = { Authorization: `Bearer ${token}` };
+  const { items, changeQty, removeItem, subtotal, fetchCart } = useCart();
+  const [paying, setPaying] = useState(false);
 
-  // 3) Cargar carrito
-  useEffect(() => {
-    const fetchCart = async () => {
-      try {
-        setLoading(true);
-        const res = await API.get('/cart', { headers: { Authorization: `Bearer ${token}` } });
-        setItems(res.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCart();
-  }, [token]);
+  const total = useMemo(() => subtotal, [subtotal]);
 
-  // 4) Filtrar ítems válidos
-  const validItems = items.filter(item => item.product && item.product.price != null);
-
-  // 5) Calcular total
-  const total = validItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
-
-  // 6) Quitar ítems del carrito
-  const handleRemove = id => {
-    if (!window.confirm('¿Quitar este producto del carrito?')) return;
-    API.delete(`/cart/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(() => setItems(prev => prev.filter(i => i._id !== id)))
-      .catch(console.error);
-  };
-
-  // 7) Registrar compra SIN pago real (checkout-local)
-  const handleCheckout = async () => {
+  const handlePay = async () => {
     try {
       setPaying(true);
-      const res = await API.post(
-        '/cart/checkout-local',
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (res.status >= 200 && res.status < 300) {
-        // Éxito: historial creado y carrito vaciado en el back
-        alert('✅ Compra guardada en tu historial.');
-        // Redirigir al perfil (categoría Compras)
-        window.location.href = '/profile';
-        return;
-      }
-      alert('No se pudo registrar la compra');
-    } catch (err) {
-      console.error(err);
-      const msg = err?.response?.data?.message || 'Error al registrar la compra';
-      alert(msg);
+      // usa tu endpoint local que guarda purchases (el que ya tenías)
+      await API.post("/cart/checkout-local", {}, { headers });
+      await fetchCart();
+      alert("Compra registrada correctamente.");
+    } catch (e) {
+      console.error(e);
+      alert("Error al registrar la compra");
     } finally {
       setPaying(false);
     }
@@ -77,58 +34,106 @@ export default function Cart() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Mi Carrito</h1>
-      {loading ? (
-        <div>Cargando...</div>
-      ) : validItems.length === 0 ? (
+      <h1 className="text-2xl font-bold mb-6">Mi Carrito</h1>
+
+      {items.length === 0 ? (
         <div>No hay ítems en el carrito.</div>
       ) : (
-        <>
-          <table className="w-full mb-6 bg-white rounded shadow">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-2">Producto</th>
-                <th className="px-4 py-2">Precio</th>
-                <th className="px-4 py-2">Cantidad</th>
-                <th className="px-4 py-2">Subtotal</th>
-                <th className="px-4 py-2">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {validItems.map(item => (
-                <tr key={item._id} className="border-t">
-                  <td className="px-4 py-2">{item.product.name}</td>
-                  <td className="px-4 py-2">S/ {item.product.price.toFixed(2)}</td>
-                  <td className="px-4 py-2">{item.quantity}</td>
-                  <td className="px-4 py-2">
-                    S/ {(item.product.price * item.quantity).toFixed(2)}
-                  </td>
-                  <td className="px-4 py-2">
-                    <button
-                      onClick={() => handleRemove(item._id)}
-                      className="px-2 py-1 bg-red-500 text-white rounded"
-                    >
-                      Quitar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Lista */}
+          <div className="lg:col-span-8 bg-white rounded shadow border">
+            <div className="hidden md:grid grid-cols-12 gap-3 px-4 py-3 border-b text-sm text-gray-600">
+              <div className="col-span-6">Producto</div>
+              <div className="col-span-2 text-right">Precio</div>
+              <div className="col-span-2 text-center">Cantidad</div>
+              <div className="col-span-2 text-right">Total</div>
+            </div>
 
-          <div className="text-right text-xl font-semibold">
-            Total a pagar: S/ {total.toFixed(2)}
+            {items.map((it) => {
+              const p = it.product || {};
+              const unit = Number(p.price || 0);
+              const line = unit * it.quantity;
+              return (
+                <div
+                  key={it._id}
+                  className="grid grid-cols-12 gap-3 px-4 py-4 border-b items-center"
+                >
+                  <div className="col-span-12 md:col-span-6 flex items-center gap-3">
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="w-16 h-16 object-cover rounded bg-gray-100"
+                      onError={(e) => {
+                        e.currentTarget.src =
+                          "https://via.placeholder.com/64x64?text=No+img";
+                      }}
+                    />
+                    <div>
+                      <div className="font-medium">{p.name}</div>
+                      <button
+                        onClick={() => removeItem(it._id)}
+                        className="text-red-600 text-sm inline-flex items-center gap-1 mt-1"
+                      >
+                        <FiTrash2 /> Quitar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="col-span-6 md:col-span-2 text-right md:text-right">
+                    S/ {unit.toFixed(2)}
+                  </div>
+
+                  <div className="col-span-6 md:col-span-2 flex justify-center items-center gap-2">
+                    <button
+                      className="p-1 rounded border hover:bg-gray-50"
+                      onClick={() => changeQty(it, -1)}
+                    >
+                      <FiMinus />
+                    </button>
+                    <span className="min-w-[24px] text-center">{it.quantity}</span>
+                    <button
+                      className="p-1 rounded border hover:bg-gray-50"
+                      onClick={() => changeQty(it, +1)}
+                    >
+                      <FiPlus />
+                    </button>
+                  </div>
+
+                  <div className="col-span-12 md:col-span-2 text-right font-semibold">
+                    S/ {line.toFixed(2)}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          <div className="text-right mt-4">
-            <button
-              onClick={handleCheckout}
-              disabled={paying}
-              className={`px-4 py-2 rounded text-white ${paying ? 'bg-gray-500' : 'bg-green-600 hover:bg-green-700'}`}
-            >
-              {paying ? 'Guardando…' : 'Pagar'}
-            </button>
+
+          {/* Resumen */}
+          <div className="lg:col-span-4">
+            <div className="bg-white rounded shadow border p-4">
+              <h2 className="font-semibold text-lg mb-4">Resumen de compra</h2>
+
+              <div className="flex justify-between mb-2 text-sm text-gray-700">
+                <span>Subtotal</span>
+                <span>S/ {subtotal.toFixed(2)}</span>
+              </div>
+
+              <div className="flex justify-between text-lg font-semibold border-t pt-3">
+                <span>Total</span>
+                <span>S/ {total.toFixed(2)}</span>
+              </div>
+
+              <button
+                onClick={handlePay}
+                disabled={paying}
+                className={`w-full mt-4 py-3 rounded text-white font-semibold ${
+                  paying ? "bg-gray-500" : "bg-green-600 hover:bg-green-700"
+                }`}
+              >
+                {paying ? "Procesando..." : "Pagar"}
+              </button>
+            </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
