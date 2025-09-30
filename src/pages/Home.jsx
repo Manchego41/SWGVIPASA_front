@@ -1,36 +1,29 @@
 // src/pages/Home.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import API from '../utils/api';
+import HeroBanner from '../components/HeroBanner';
 
 export default function Home() {
+  const [productos, setProductos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Obtener productos para el carrusel
+    API.get('/products')
+      .then((res) => {
+        const productosData = res.data?.products ?? res.data;
+        setProductos(Array.isArray(productosData) ? productosData : []);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div className="pt-16 bg-gray-50 min-h-screen">
-      {/* Hero: Bienvenidos */}
+      {/* Hero: Carrusel de productos */}
       <section className="bg-white">
-        <div className="max-w-6xl mx-auto px-4 py-16 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold text-[#004157]">
-            Bienvenidos a IPASA
-          </h1>
-          <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">
-            Repuestos automotrices de calidad, atención confiable y una
-            experiencia de compra sencilla.
-          </p>
-
-          <div className="mt-8 flex items-center justify-center gap-3">
-            <NavLink
-              to="/catalogo"
-              className="px-6 py-3 rounded-lg bg-[#00AEEF] text-white font-medium hover:bg-opacity-90"
-            >
-              Ver Catálogo
-            </NavLink>
-            <a
-              href="#contacto"
-              className="px-6 py-3 rounded-lg border border-[#00AEEF] text-[#00AEEF] font-medium hover:bg-blue-50"
-            >
-              Contáctanos
-            </a>
-          </div>
-        </div>
+        <HeroBanner productos={productos} />
       </section>
 
       {/* Contacto */}
