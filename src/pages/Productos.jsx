@@ -28,23 +28,30 @@ const Productos = () => {
   };
 
   const handleAddToCart = async (productId) => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
+  const token = localStorage.getItem('token');
+  if (!token) {
+    navigate('/login');
+    return;
+  }
 
-    try {
-      await API.post('/cart/add', {
-        productId,
-        quantity: cantidades[productId] || 1,
-      });
-      alert('✅ Producto agregado al carrito');
-    } catch (error) {
-      console.error('Error al agregar al carrito:', error);
-      alert('❌ No se pudo agregar al carrito');
-    }
-  };
+  try {
+    await API.post('/cart/add', {
+      productId,
+      quantity: cantidades[productId] || 1,
+    });
+
+    // 🔔 Notificar al widget del carrito:
+    window.dispatchEvent(new Event('cart:changed'));
+    // (opcional)
+    if (window.refreshCart) window.refreshCart();
+
+    alert('✅ Producto agregado al carrito');
+  } catch (error) {
+    console.error('Error al agregar al carrito:', error);
+    alert('❌ No se pudo agregar al carrito');
+  }
+};
+
 
   const handleChangeCantidad = (productId, nuevaCantidad, stock) => {
     let cantidad = parseInt(nuevaCantidad);

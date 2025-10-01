@@ -6,7 +6,7 @@ import API from '../utils/api';
 const INITIAL = { name: '', email: '', password: '', confirmPassword: '' };
 
 export default function Login() {
-  const [tab, setTab]     = useState('login');       // 'login' | 'register'
+  const [tab, setTab]     = useState('login'); // 'login' | 'register'
   const [form, setForm]   = useState(INITIAL);
   const [error, setError] = useState('');
   const navigate          = useNavigate();
@@ -23,14 +23,28 @@ export default function Login() {
         email:    form.email,
         password: form.password,
       });
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          token: data.token,
-          role:  data.role,
-          name:  data.name,
-        })
-      );
+
+      // Guarda objeto de usuario
+      localStorage.setItem('user', JSON.stringify({
+        token: data.token,
+        role:  data.role,
+        name:  data.name,
+      }));
+
+      // 🔑 Redundancia útil para otros lectores (CartWidget busca varias llaves)
+      localStorage.setItem('token', data.token);
+      sessionStorage.setItem('token', data.token);
+      document.cookie = `token=${encodeURIComponent(data.token)}; path=/; SameSite=Lax`;
+
+      // 🔐 Configura el header por defecto del cliente
+      API.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+
+      // 🔔 Notifica a la app que cambió la sesión y refresca carrito
+      window.dispatchEvent(new Event('auth:changed'));
+      window.dispatchEvent(new Event('cart:changed'));
+      if (window.refreshCart) window.refreshCart();
+
+      // Navega
       if (data.role === 'administrador') navigate('/admin');
       else navigate('/');
     } catch (err) {
@@ -67,17 +81,13 @@ export default function Login() {
         {/* Tabs */}
         <div className="flex border-b-2">
           <button
-            className={`flex-1 py-2 ${
-              tab === 'login' ? 'border-b-2 border-blue-600' : ''
-            }`}
+            className={`flex-1 py-2 ${tab === 'login' ? 'border-b-2 border-blue-600' : ''}`}
             onClick={() => { setTab('login'); setError(''); }}
           >
             Iniciar sesión
           </button>
           <button
-            className={`flex-1 py-2 ${
-              tab === 'register' ? 'border-b-2 border-blue-600' : ''
-            }`}
+            className={`flex-1 py-2 ${tab === 'register' ? 'border-b-2 border-blue-600' : ''}`}
             onClick={() => { setTab('register'); setError(''); }}
           >
             Registrarse

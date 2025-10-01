@@ -1,8 +1,15 @@
 // src/components/Navbar.jsx
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import ProfileMenu from './ProfileMenu';
 import CartWidget from './CartWidget';
+import API from '../utils/api';
+
+// util interno
+function readUser() {
+  try { return JSON.parse(localStorage.getItem('user') || 'null'); }
+  catch { return null; }
+}
 
 export default function Navbar() {
   const location = useLocation();
@@ -12,24 +19,39 @@ export default function Navbar() {
   const isAdminRoute = location.pathname.startsWith('/admin');
   if (isAdminRoute) return null;
 
-  // Lee el usuario guardado por el login (si no existe, es null)
-  // useMemo para no recalcular en cada render (se vuelve a leer en cada navegación)
-  const user = useMemo(() => {
-    try {
-      return JSON.parse(localStorage.getItem('user') || 'null');
-    } catch {
-      return null;
-    }
-  // usar location.key hace que se recalcule cuando navegas
-  }, [location.key]);
+  // Estado de usuario reactivo: cambia en navegación y en eventos de auth
+  const [user, setUser] = useState(() => readUser());
+
+  useEffect(() => { setUser(readUser()); }, [location.key]);
+  useEffect(() => {
+    const onAuthChanged = () => setUser(readUser());
+    window.addEventListener('auth:changed', onAuthChanged);
+    return () => window.removeEventListener('auth:changed', onAuthChanged);
+  }, []);
 
   const handleLogout = () => {
-    try { localStorage.removeItem('token'); } catch {}
-    try { localStorage.removeItem('user'); } catch {}
-    try { sessionStorage.removeItem('token'); } catch {}
-    // avisa al resto de la app (p.ej. al widget) que cerraste sesión
-    window.dispatchEvent(new Event('auth:logout'));
-    navigate('/login');
+    try {
+      // 1) limpiar storages
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+
+      // 2) limpiar cookie (si la usas)
+      document.cookie = 'token=; Max-Age=0; path=/; SameSite=Lax';
+
+      // 3) quitar header por defecto del cliente
+      delete API.defaults.headers.common.Authorization;
+
+      // 4) notificar al resto de la app (CartWidget, etc.)
+      window.dispatchEvent(new Event('auth:changed'));
+      window.dispatchEvent(new Event('cart:changed'));
+      if (window.refreshCart) window.refreshCart();
+    } catch (e) {
+      console.error('Error en logout:', e);
+    } finally {
+      // 5) navegar al login
+      navigate('/login');
+    }
   };
 
   return (
@@ -70,7 +92,7 @@ export default function Navbar() {
                 <NavLink
                   to="/login"
                   className="px-4 py-2 bg-[#00AEEF] text-white rounded hover:bg-opacity-90"
-                  onClick={() => window.dispatchEvent(new Event('auth:login:navigate'))}
+                  onClick={() => window.dispatchEvent(new Event('auth:changed'))}
                 >
                   Iniciar sesión
                 </NavLink>
@@ -94,8 +116,9 @@ export default function Navbar() {
         </nav>
       </header>
 
-      {/* Botón flotante + panel del carrito (ahora recibe el user) */}
+      {/* Botón flotante + panel del carrito */}
       <CartWidget user={user} />
     </>
   );
 }
+

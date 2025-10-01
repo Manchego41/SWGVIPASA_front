@@ -1,11 +1,10 @@
 // src/components/CartWidget.jsx
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../utils/api';
 
 /** Lee de localStorage, sessionStorage y cookies con varias llaves posibles */
 function getFromAllStores(keys) {
-  // 1) storages
   for (const store of [localStorage, sessionStorage]) {
     for (const k of keys) {
       try {
@@ -14,7 +13,6 @@ function getFromAllStores(keys) {
       } catch (_) {}
     }
   }
-  // 2) cookies
   try {
     const cookies = document.cookie || '';
     for (const k of keys) {
@@ -25,77 +23,120 @@ function getFromAllStores(keys) {
   } catch (_) {}
   return null;
 }
-
 function getUserFromStores() {
-  const raw =
-    getFromAllStores(['user', 'usuario', 'profile']) ||
-    null;
+  const raw = getFromAllStores(['user', 'usuario', 'profile']) || null;
   if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
-  }
+  try { return JSON.parse(raw); } catch { return null; }
+}
+function touchesCart(url = '') {
+  const u = (url || '').toLowerCase();
+  return u.includes('/cart') || u.includes('/carrito') || u.includes('/checkout-local') || u.includes('/checkout');
 }
 
 export default function CartWidget() {
   const navigate = useNavigate();
 
-  // --- Detección amplia de sesión ---
-  const user = useMemo(() => getUserFromStores(), []);
+  // -------- auth reactivo (watcher) ----------
+  const [authTick, setAuthTick] = useState(0);
+  const prevSigRef = useRef('');
+  const computeAuthSig = () => {
+    const u = getFromAllStores(['user','usuario','profile']) || '';
+    const t = getFromAllStores(['token','accessToken','authToken','jwt','jwt_token']) || '';
+    return `${t}__${u}`;
+  };
+  useEffect(() => {
+    const bumpIfChanged = () => {
+      const sig = computeAuthSig();
+      if (sig !== prevSigRef.current) {
+        prevSigRef.current = sig;
+        setAuthTick(v => v + 1);
+      }
+    };
+    bumpIfChanged();
+    const iv = setInterval(bumpIfChanged, 1000);
+    const onFocus = () => bumpIfChanged();
+    const onVisibility = () => bumpIfChanged();
+    const onAuthChanged = () => bumpIfChanged();
+    const onStorage = () => bumpIfChanged();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('auth:changed', onAuthChanged);
+    window.addEventListener('storage', onStorage);
+    return () => {
+      clearInterval(iv);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('auth:changed', onAuthChanged);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
+  // user/token
+  const user = useMemo(() => getUserFromStores(), [authTick]);
   const token =
     getFromAllStores(['token', 'accessToken', 'authToken', 'jwt', 'jwt_token']) ||
-    user?.token ||
-    user?.accessToken ||
-    null;
+    user?.token || user?.accessToken || null;
+  const isLogged = !!(token || user?._id || user?.id || user?.email);
 
-  // Consideramos sesión si hay token, o si hay user con algún identificador,
-  // o si hay una cookie “token” (ya la cubre getFromAllStores arriba).
-  const isLogged = !!(
-    token ||
-    user?._id ||
-    user?.id ||
-    user?.email
-  );
-
+  // -------- estado carrito ----------
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [busyItem, setBusyItem] = useState({}); // { [itemId]: boolean }
 
-  // Logs para depurar (puedes quitarlos)
   useEffect(() => {
-    console.log('[CartWidget] token?', !!token, 'user?', !!user, 'isLogged?', isLogged);
-  }, [token, user, isLogged]);
+    if (!isLogged) setItems([]); // vacía al perder sesión
+  }, [isLogged]);
 
-  // Escucha cambios en /cart hechos desde cualquier parte del sitio
+  // interceptores para disparar cart:changed
   useEffect(() => {
+    const reqId = API.interceptors.request.use((config) => {
+      try {
+        const m = (config.method || '').toLowerCase();
+        const u = config.url || '';
+        if (['post','put','patch','delete'].includes(m) && touchesCart(u)) {
+          config.__touchesCart = true;
+        }
+      } catch (_) {}
+      return config;
+    });
     const resId = API.interceptors.response.use(
       (res) => {
         try {
           const m = (res.config?.method || '').toLowerCase();
           const u = res.config?.url || '';
-          if (u.includes('/cart') && ['post', 'delete', 'put', 'patch'].includes(m)) {
+          if (res.config?.__touchesCart || (['post','put','patch','delete'].includes(m) && touchesCart(u))) {
             window.dispatchEvent(new Event('cart:changed'));
           }
         } catch (_) {}
         return res;
       },
-      (err) => Promise.reject(err)
+      (err) => {
+        try {
+          const m = (err.config?.method || '').toLowerCase();
+          const u = err.config?.url || '';
+          if (err.config?.__touchesCart || (['post','put','patch','delete'].includes(m) && touchesCart(u))) {
+            window.dispatchEvent(new Event('cart:changed'));
+          }
+        } catch (_) {}
+        return Promise.reject(err);
+      }
     );
-    return () => API.interceptors.response.eject(resId);
+    return () => {
+      API.interceptors.request.eject(reqId);
+      API.interceptors.response.eject(resId);
+    };
   }, []);
 
   const fetchCart = async () => {
     try {
       setLoading(true);
-      // Si hay token lo enviamos; si no, probamos igual (por si usas cookie HttpOnly)
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const { data } = await API.get('/cart', { headers });
       setItems(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error('[CartWidget] fetchCart error', e?.response || e);
-      // si 401, mantenemos items vacíos
       setItems([]);
     } finally {
       setLoading(false);
@@ -107,27 +148,62 @@ export default function CartWidget() {
     const id = setInterval(fetchCart, 8000);
     const onBump = () => fetchCart();
     window.addEventListener('cart:changed', onBump);
+    window.refreshCart = fetchCart;
     return () => {
       clearInterval(id);
       window.removeEventListener('cart:changed', onBump);
+      if (window.refreshCart === fetchCart) delete window.refreshCart;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   const total = items
     .filter(i => i.product && i.product.price != null)
-    .reduce((sum, i) => sum + i.product.price * i.quantity, 0);
+    .reduce((sum, i) => sum + (Number(i.product.price) || 0) * (i.quantity || 0), 0);
 
-  // <<< CAMBIO CLAVE: NO redirigimos al login al abrir >>>
   const handleOpen = () => setOpen(v => !v);
 
   const handleRemove = async (id) => {
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       await API.delete(`/cart/${id}`, { headers });
-      setItems(prev => prev.filter(i => i._id !== id));
+      setItems(prev => prev.filter(i => i._id !== id)); // optimista
+      window.dispatchEvent(new Event('cart:changed'));
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  // 🔢 Cambiar cantidad por unidad (–/+) con update optimista
+  const changeQty = async (item, delta) => {
+    const id = item._id;
+    const current = item.quantity || 0;
+    const next = current + delta;
+
+    if (next <= 0) {
+      return handleRemove(id);
+    }
+
+    // optimista
+    setItems(prev => prev.map(it => it._id === id ? { ...it, quantity: next } : it));
+    setBusyItem(prev => ({ ...prev, [id]: true }));
+
+    try {
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      // ⬇️ ajusta a tu API si usa otra ruta o verbo
+      await API.patch(`/cart/${id}`, { quantity: next }, { headers });
+      // Alternativas:
+      // await API.put(`/cart/${id}`, { quantity: next }, { headers });
+      // if (delta > 0) await API.post('/cart/add', { productId: item.product._id, quantity: 1 }, { headers });
+      // else await API.post('/cart/removeOne', { itemId: id }, { headers });
+
+      window.dispatchEvent(new Event('cart:changed'));
+    } catch (e) {
+      console.error('qty update failed', e);
+      // revertir si falló
+      setItems(prev => prev.map(it => it._id === id ? { ...it, quantity: current } : it));
+      alert('No se pudo actualizar la cantidad');
+    } finally {
+      setBusyItem(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -144,7 +220,8 @@ export default function CartWidget() {
         alert('✅ Compra guardada.');
         setItems([]);
         setOpen(false);
-        navigate('/profile'); // ajusta si tu historial está en otra ruta
+        window.dispatchEvent(new Event('cart:changed'));
+        navigate('/profile');
       } else {
         alert('No se pudo registrar la compra');
       }
@@ -160,7 +237,7 @@ export default function CartWidget() {
 
   return (
     <>
-      {/* Botón flotante (encima del soporte) */}
+      {/* Botón flotante (derecha) */}
       <button
         aria-label="Abrir mini-carrito"
         onClick={handleOpen}
@@ -177,92 +254,131 @@ export default function CartWidget() {
         )}
       </button>
 
-      {/* Drawer lateral */}
-      {open && (
-        <div className="fixed inset-0 z-[9998]">
-          <div className="absolute inset-0 bg-black/25" onClick={() => setOpen(false)} />
-          <div className="absolute right-6 bottom-28 w-[320px] max-h-[65vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            <div className="px-4 py-3 border-b flex items-center justify-between">
-              <h4 className="font-semibold">Mi carrito</h4>
-              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-gray-100">✕</button>
-            </div>
+      {/* Drawer lateral derecho */}
+      <div className={`fixed inset-0 z-[9998] ${open ? '' : 'pointer-events-none'}`}>
+        <div
+          className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${open ? 'opacity-100' : 'opacity-0'}`}
+          onClick={() => setOpen(false)}
+        />
+        <aside
+          role="dialog"
+          aria-modal="true"
+          aria-label="Carrito de compras"
+          className={`absolute top-0 right-0 h-full w-[420px] max-w-[92vw] bg-white shadow-2xl rounded-l-2xl overflow-hidden
+                      transform transition-transform duration-300 ease-in-out will-change-transform
+                      ${open ? 'translate-x-0' : 'translate-x-full'}`}
+        >
+          <div className="px-5 py-4 border-b flex items-center justify-between">
+            <h4 className="text-lg font-semibold">Mi carrito</h4>
+            <button onClick={() => setOpen(false)} className="p-2 rounded hover:bg-gray-100" aria-label="Cerrar">
+              ✕
+            </button>
+          </div>
 
-            <div className="p-3 overflow-y-auto flex-1">
-              {!isLogged ? (
-                <div className="text-sm text-gray-700 space-y-2">
-                  <p>Inicia sesión para ver tu carrito.</p>
-                  <button
-                    onClick={() => navigate('/login')}
-                    className="rounded bg-blue-600 text-white px-3 py-1 text-sm hover:bg-blue-700"
-                  >
-                    Ir a iniciar sesión
-                  </button>
-                </div>
-              ) : loading ? (
-                <p className="text-sm text-gray-500">Cargando…</p>
-              ) : items.length === 0 ? (
-                <p className="text-sm text-gray-500">Tu carrito está vacío.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {items.map(item => (
-                    <li key={item._id} className="border rounded-lg p-2 flex gap-2 items-start">
+          <div className="p-4 overflow-y-auto flex-1">
+            {!isLogged ? (
+              <div className="text-sm text-gray-700 space-y-2">
+                <p>Inicia sesión para ver tu carrito.</p>
+                <button
+                  onClick={() => navigate('/login')}
+                  className="rounded bg-blue-600 text-white px-3 py-2 text-sm hover:bg-blue-700"
+                >
+                  Ir a iniciar sesión
+                </button>
+              </div>
+            ) : loading ? (
+              <p className="text-sm text-gray-500">Cargando…</p>
+            ) : items.length === 0 ? (
+              <p className="text-sm text-gray-500">Tu carrito está vacío.</p>
+            ) : (
+              <ul className="space-y-3">
+                {items.map((item) => {
+                  const id = item._id;
+                  const q = item.quantity || 0;
+                  const busy = !!busyItem[id];
+                  return (
+                    <li key={id} className="border rounded-lg p-2 flex gap-3 items-start">
                       {item.product?.imageUrl && (
                         <img
                           src={item.product.imageUrl}
                           alt={item.product.name}
-                          className="w-12 h-12 object-cover rounded"
-                          onError={e => (e.currentTarget.style.display = 'none')}
+                          className="w-14 h-14 object-cover rounded"
+                          onError={(e) => (e.currentTarget.style.display = 'none')}
                         />
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{item.product?.name || 'Producto'}</p>
-                        <p className="text-xs text-gray-500">
-                          Cant: {item.quantity} · S/ {(item.product?.price ?? 0).toFixed(2)}
-                        </p>
+                        <p className="text-xs text-gray-500">S/ {(Number(item.product?.price) || 0).toFixed(2)}</p>
+
+                        {/* 🔢 Stepper cantidad */}
+                        <div className="mt-2 flex items-center gap-2">
+                          <button
+                            disabled={busy || q <= 0}
+                            onClick={() => changeQty(item, -1)}
+                            className={`h-7 w-7 rounded-full border flex items-center justify-center text-lg leading-none ${
+                              busy ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                            }`}
+                            aria-label="Disminuir cantidad"
+                            title="Disminuir"
+                          >
+                            –
+                          </button>
+                          <span className="min-w-[2.5rem] text-center text-sm font-semibold">{q}</span>
+                          <button
+                            disabled={busy}
+                            onClick={() => changeQty(item, +1)}
+                            className={`h-7 w-7 rounded-full border flex items-center justify-center text-lg leading-none ${
+                              busy ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
+                            }`}
+                            aria-label="Aumentar cantidad"
+                            title="Aumentar"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Quitar */}
                       <button
-                        onClick={() => handleRemove(item._id)}
+                        onClick={() => handleRemove(id)}
                         className="text-xs bg-red-500 text-white rounded px-2 py-1 hover:bg-red-600"
                         title="Quitar"
                       >
                         Quitar
                       </button>
                     </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
 
-            <div className="px-4 py-3 border-t bg-white">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-gray-600">Total</span>
-                <span className="font-semibold">S/ {total.toFixed(2)}</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => (isLogged ? navigate('/cart') : navigate('/login'))}
-                  className="flex-1 rounded-xl border px-3 py-2 text-sm hover:bg-gray-50"
-                >
-                  Ver carrito
-                </button>
-                <button
-                  onClick={handleCheckout}
-                  disabled={paying || items.length === 0}
-                  className={`flex-1 rounded-xl text-white px-3 py-2 text-sm ${
-                    paying || items.length === 0
-                      ? 'bg-gray-400'
-                      : 'bg-green-600 hover:bg-green-700'
-                  }`}
-                >
-                  {paying ? 'Guardando…' : 'Pagar'}
-                </button>
-              </div>
+          <div className="px-5 py-4 border-t bg-white">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-gray-600">Total</span>
+              <span className="font-semibold">S/ {total.toFixed(2)}</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => (isLogged ? navigate('/cart') : navigate('/login'))}
+                className="flex-1 rounded-xl border px-3 py-2 text-sm hover:bg-gray-50"
+              >
+                Ver carrito
+              </button>
+              <button
+                onClick={handleCheckout}
+                disabled={paying || items.length === 0}
+                className={`flex-1 rounded-xl text-white px-3 py-2 text-sm ${
+                  paying || items.length === 0 ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                {paying ? 'Guardando…' : 'Pagar'}
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        </aside>
+      </div>
     </>
   );
 }
-
 
