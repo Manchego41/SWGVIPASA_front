@@ -40,7 +40,7 @@ export default function AdminLayout() {
       `}>
         <div className="px-8 pt-8 pb-6 flex flex-col items-center gap-2 border-b border-slate-800">
           <img src="/descarga-removebg-preview.png" alt="Logo" className="w-20 h-20 object-contain drop-shadow-lg transition-transform duration-300 hover:scale-105" />
-          <h2 className="text-2xl font-extrabold tracking-wide text-sky-300 drop-shadow mb-1 ">  Camila da miedo</h2>
+          <h2 className="text-2xl font-extrabold tracking-wide text-sky-300 drop-shadow mb-1 ">Admin Panel</h2>
         </div>
 
         <nav className="flex-1 px-6 py-6 space-y-2">
