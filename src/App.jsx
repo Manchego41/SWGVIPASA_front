@@ -1,6 +1,6 @@
 // src/App.jsx
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute";
@@ -24,16 +24,20 @@ import { CartProvider } from "./context/CartContext";
 import MiniCartDrawer from "./components/MiniCartDrawer";
 import Catalogo from "./pages/Catalogo";
 
-function App() {
-  return (
-    <CartProvider>
-      <BrowserRouter>
-        <Navbar />
-        {/* Drawer global, presente en todas las páginas */}
-        <MiniCartDrawer />
+function AppWrapper() {
+  const location = useLocation();
 
-        <div className="pt-16">
-          <Routes>
+  // Si la ruta comienza con /admin el Navbar no se muestra; evitamos el padding superior
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  return (
+    <>
+      <Navbar />
+      {/* Drawer global, presente en todas las páginas */}
+      <MiniCartDrawer />
+
+      <div className={isAdminRoute ? "" : "pt-16"}>
+        <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/catalogo" element={<Catalogo />} />
             <Route path="/contacto" element={<Contacto />} />
@@ -67,8 +71,17 @@ function App() {
               <Route path="products/new" element={<ProductEditor />} />
               <Route path="stock" element={<StockManager />} />
             </Route>
-          </Routes>
-        </div>
+        </Routes>
+      </div>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <CartProvider>
+      <BrowserRouter>
+        <AppWrapper />
       </BrowserRouter>
     </CartProvider>
   );
