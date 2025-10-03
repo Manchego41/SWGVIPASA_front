@@ -13,7 +13,7 @@ export default function Home() {
           </h1>
           <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">
             Repuestos automotrices de calidad, atención confiable y una
-            experiencia de compra sencilla.
+            experiencia de compra de calidad.
           </p>
 
           <div className="mt-8 flex items-center justify-center gap-3">
