@@ -3,32 +3,37 @@ import { Line } from "react-chartjs-2";
 import "chart.js/auto";
 
 export default function AdminDashboard() {
-  const [sales, setSales] = useState([]); // empieza vacío
+  const [sales, setSales] = useState([]);
 
-  // 🔗 Conexión con el backend (URL fija, mínima modificación)
   useEffect(() => {
     const fetchSales = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/sales"); // <- SOLO ESTE CAMBIO
+        const res = await fetch("http://localhost:5000/api/purchases");
         const data = await res.json();
-        console.log("Sales fetched:", data); // debug mínimo (puedes quitarlo después)
+        console.log("📦 Purchases fetched:", data);
         setSales(data);
       } catch (error) {
-        console.error("Error fetching sales:", error);
+        console.error("❌ Error fetching purchases:", error);
       }
     };
 
     fetchSales();
   }, []);
 
-  // Calcular totales
+  // 🔹 Calcular totales
   const totalSales = sales.reduce((sum, s) => sum + (s.total || 0), 0);
-  const totalOrders = sales.reduce((sum, s) => sum + (s.quantity || 0), 0);
+  const totalOrders = sales.length; // cantidad de órdenes
 
-  // Preparar datos para Chart.js
+  // 🔹 Datos para el gráfico
   const chartData = {
     labels: sales.map((s) =>
-      s.date ? new Date(s.date).toLocaleDateString("es-PE") : "Sin fecha"
+      s.createdAt
+        ? new Date(s.createdAt).toLocaleDateString("es-PE", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          })
+        : "Sin fecha"
     ),
     datasets: [
       {
@@ -46,7 +51,7 @@ export default function AdminDashboard() {
     <div style={{ padding: 20 }}>
       <h1>Dashboard del Administrador</h1>
 
-      {/* Totales en texto */}
+      {/* Totales */}
       <div style={{ display: "flex", gap: "2rem", marginBottom: "2rem" }}>
         <div style={{ background: "#f5f5f5", padding: 20, borderRadius: 8 }}>
           <h3>Total Ventas</h3>
@@ -58,7 +63,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Gráfico de ventas */}
+      {/* Gráfico */}
       <div style={{ background: "#fff", padding: 20, borderRadius: 8 }}>
         <h3>Historial de Ventas</h3>
         <Line data={chartData} />
