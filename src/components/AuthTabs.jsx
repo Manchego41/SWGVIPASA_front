@@ -4,149 +4,237 @@ import { Link, useNavigate } from 'react-router-dom'
 import API from '../utils/api'
 
 export default function AuthTabs() {
-  const [tab, setTab] = useState('login')
+  const [tab, setTab] = useState('login') // 'login' | 'register'
   const navigate = useNavigate()
 
-  // Login state
-  const [loginForm, setLoginForm] = useState({ email:'', password:'' })
+  // --- LOGIN ---
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' })
   const [loginMsg, setLoginMsg] = useState('')
 
-  // Register state
+  // --- REGISTER ---
   const [regForm, setRegForm] = useState({
-    name:'', email:'', password:'', repeatPassword:'', terms:false
+    name: '',
+    email: '',
+    password: '',
+    repeatPassword: '',
+    terms: false,
   })
   const [regMsg, setRegMsg] = useState('')
 
-  // Handlers
-  const handleLogin = async e => {
+  const handleLoginChange = (e) => {
+    setLoginForm({ ...loginForm, [e.target.name]: e.target.value })
+  }
+
+  const handleRegisterChange = (e) => {
+    const { name, value, type, checked } = e.target
+    setRegForm({ ...regForm, [name]: type === 'checkbox' ? checked : value })
+  }
+
+  const handleLogin = async (e) => {
     e.preventDefault()
     setLoginMsg('')
+
     try {
+      // Backend devuelve: { token, role, name }
       const { data } = await API.post('/auth/login', loginForm)
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+
+      // 🔧 Guardamos en "user" el token (lo que espera tu CartContext: user.token)
+      const user = { token: data.token, role: data.role, name: data.name }
+      localStorage.setItem('user', JSON.stringify(user))
+
+      // (Opcional) limpiamos un posible token suelto legacy
+      localStorage.removeItem('token')
+
       navigate('/')
     } catch (err) {
-      setLoginMsg(err.response?.data?.message || 'Error al iniciar sesión')
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Error al iniciar sesión'
+      setLoginMsg(msg)
     }
   }
 
-  const handleRegister = async e => {
+  const handleRegister = async (e) => {
     e.preventDefault()
     setRegMsg('')
-    const { name, email, password, repeatPassword, terms } = regForm
 
-    if (!terms) {
-      setRegMsg('Debes aceptar los términos y condiciones')
+    if (!regForm.terms) {
+      setRegMsg('Debes aceptar los términos y condiciones.')
       return
     }
-    if (password !== repeatPassword) {
-      setRegMsg('Las contraseñas no coinciden')
+    if (!regForm.name.trim() || !regForm.email.trim() || !regForm.password) {
+      setRegMsg('Completa todos los campos.')
       return
     }
+    if (regForm.password !== regForm.repeatPassword) {
+      setRegMsg('Las contraseñas no coinciden.')
+      return
+    }
+
     try {
-      await API.post('/auth/register', { name, email, password })
+      await API.post('/auth/register', {
+        name: regForm.name,
+        email: regForm.email,
+        password: regForm.password,
+      })
+
+      // Éxito: llevar al login y prellenar correo
       setTab('login')
-      setLoginMsg('¡Registro exitoso! Ingresa para continuar.')
+      setLoginMsg('Registro exitoso. Inicia sesión.')
+      setLoginForm({ email: regForm.email, password: '' })
+      setRegForm({
+        name: '',
+        email: '',
+        password: '',
+        repeatPassword: '',
+        terms: false,
+      })
     } catch (err) {
-      setRegMsg(err.response?.data?.message || 'Error al registrarse')
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Error al registrarse'
+      setRegMsg(msg)
     }
   }
 
   return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
-      <div className="flex border-b mb-6">
+    <div className="max-w-md mx-auto mt-24 bg-white p-6 rounded-lg shadow">
+      {/* Tabs */}
+      <div className="flex border-b-2">
         <button
-          className={`flex-1 py-2 text-center ${tab==='login' ? 'border-b-2 border-blue-600 font-semibold':''}`}
-          onClick={()=>setTab('login')}
+          className={`flex-1 py-2 text-center ${
+            tab === 'login'
+              ? 'border-b-2 border-blue-600 font-semibold'
+              : 'text-gray-500'
+          }`}
+          onClick={() => setTab('login')}
         >
           Iniciar sesión
         </button>
         <button
-          className={`flex-1 py-2 text-center ${tab==='register' ? 'border-b-2 border-blue-600 font-semibold':''}`}
-          onClick={()=>setTab('register')}
+          className={`flex-1 py-2 text-center ${
+            tab === 'register'
+              ? 'border-b-2 border-blue-600 font-semibold'
+              : 'text-gray-500'
+          }`}
+          onClick={() => setTab('register')}
         >
           Registrarse
         </button>
       </div>
 
-      {tab==='login' ? (
-        <form onSubmit={handleLogin} className="space-y-4">
-          {loginMsg && <p className="text-red-500 text-sm">{loginMsg}</p>}
-          <input
-            type="email"
-            name="email"
-            value={loginForm.email}
-            onChange={e=>setLoginForm({...loginForm,[e.target.name]:e.target.value})}
-            placeholder="Correo electrónico"
-            required
-            className="w-full border p-2 rounded"
-          />
-          <input
-            type="password"
-            name="password"
-            value={loginForm.password}
-            onChange={e=>setLoginForm({...loginForm,[e.target.name]:e.target.value})}
-            placeholder="Contraseña"
-            required
-            className="w-full border p-2 rounded"
-          />
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded">
+      {/* LOGIN */}
+      {tab === 'login' && (
+        <form className="space-y-4 mt-6" onSubmit={handleLogin}>
+          {loginMsg && (
+            <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+              {loginMsg}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Correo</label>
+            <input
+              type="email"
+              name="email"
+              value={loginForm.email}
+              onChange={handleLoginChange}
+              className="w-full border p-2 rounded"
+              placeholder="correo@dominio.com"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Contraseña</label>
+            <input
+              type="password"
+              name="password"
+              value={loginForm.password}
+              onChange={handleLoginChange}
+              className="w-full border p-2 rounded"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+          >
             Entrar
           </button>
-          <p className="text-center text-sm">
-            ¿No tienes cuenta?{' '}
-            <button type="button" onClick={()=>setTab('register')} className="text-blue-600">
-              Regístrate
-            </button>
-          </p>
+          <div className="text-right">
+            <Link className="text-sm text-blue-600 underline" to="/forgot">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
         </form>
-      ) : (
-        <form onSubmit={handleRegister} className="space-y-4">
-          {regMsg && <p className="text-red-500 text-sm">{regMsg}</p>}
-          <input
-            type="text"
-            name="name"
-            value={regForm.name}
-            onChange={e=>setRegForm({...regForm,[e.target.name]:e.target.value})}
-            placeholder="Nombre completo"
-            required
-            className="w-full border p-2 rounded"
-          />
-          <input
-            type="email"
-            name="email"
-            value={regForm.email}
-            onChange={e=>setRegForm({...regForm,[e.target.name]:e.target.value})}
-            placeholder="Correo electrónico (@gmail.com)"
-            required
-            className="w-full border p-2 rounded"
-          />
-          <input
-            type="password"
-            name="password"
-            value={regForm.password}
-            onChange={e=>setRegForm({...regForm,[e.target.name]:e.target.value})}
-            placeholder="Contraseña"
-            required
-            className="w-full border p-2 rounded"
-          />
-          <input
-            type="password"
-            name="repeatPassword"
-            value={regForm.repeatPassword}
-            onChange={e=>setRegForm({...regForm,[e.target.name]:e.target.value})}
-            placeholder="Repita contraseña"
-            required
-            className="w-full border p-2 rounded"
-          />
-          <label className="flex items-center space-x-2">
+      )}
+
+      {/* REGISTER */}
+      {tab === 'register' && (
+        <form className="space-y-4 mt-6" onSubmit={handleRegister}>
+          {regMsg && (
+            <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+              {regMsg}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium mb-1">Nombre</label>
+            <input
+              type="text"
+              name="name"
+              value={regForm.name}
+              onChange={handleRegisterChange}
+              className="w-full border p-2 rounded"
+              placeholder="Nombre completo"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Correo</label>
+            <input
+              type="email"
+              name="email"
+              value={regForm.email}
+              onChange={handleRegisterChange}
+              className="w-full border p-2 rounded"
+              placeholder="correo@dominio.com"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Contraseña</label>
+            <input
+              type="password"
+              name="password"
+              value={regForm.password}
+              onChange={handleRegisterChange}
+              className="w-full border p-2 rounded"
+              placeholder="Mínimo 6 caracteres"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Repetir contraseña
+            </label>
+            <input
+              type="password"
+              name="repeatPassword"
+              value={regForm.repeatPassword}
+              onChange={handleRegisterChange}
+              className="w-full border p-2 rounded"
+              required
+            />
+          </div>
+
+          <label className="flex items-center gap-2">
             <input
               type="checkbox"
               name="terms"
               checked={regForm.terms}
-              onChange={e=>setRegForm({...regForm,terms:e.target.checked})}
-              required
+              onChange={handleRegisterChange}
             />
             <span className="text-sm">
               He leído y acepto los{' '}
@@ -155,7 +243,11 @@ export default function AuthTabs() {
               </Link>
             </span>
           </label>
-          <button type="submit" className="w-full bg-green-600 text-white py-2 rounded">
+
+          <button
+            type="submit"
+            className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700"
+          >
             Registrarse
           </button>
         </form>

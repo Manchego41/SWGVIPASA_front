@@ -1,93 +1,114 @@
 // src/context/CartContext.jsx
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import API from "../utils/api";
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import API from '../utils/api';
 
 const CartContext = createContext(null);
 
-export function CartProvider({ children }) {
-  const stored = JSON.parse(localStorage.getItem("user") || "null");
-  const token = stored?.token;
+function readToken() {
+  try {
+    const raw = localStorage.getItem('user');
+    const t = raw ? JSON.parse(raw)?.token : null;
+    return t || localStorage.getItem('token') || null; // fallback legacy
+  } catch {
+    return localStorage.getItem('token') || null;
+  }
+}
 
+export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [token, setToken] = useState(readToken());
 
-  const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+  // Mantener token sincronizado si cambia en otra pestaña
+  useEffect(() => {
+    const onStorage = () => setToken(readToken());
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const fetchCart = async () => {
-    if (!token) {
-      setItems([]);
-      return;
-    }
+    if (!readToken()) return; // no intentes si no hay token
+    setLoading(true);
     try {
-      setLoading(true);
-      const { data } = await API.get("/cart", { headers: authHeaders });
-      // Filtra ítems con product válido
-      setItems(Array.isArray(data) ? data.filter(i => i.product) : []);
-    } catch (e) {
-      console.error("Error cargando carrito:", e);
+      const { data } = await API.get('/cart');
+      setItems(Array.isArray(data) ? data : data?.items || []);
+    } catch {
+      setItems([]); // 401 u otro error → limpiar
     } finally {
       setLoading(false);
     }
   };
 
-  // add 1 (backend ya incrementa si existe)
+  // add 1 unidad (el backend incrementa si ya existe)
   const addItem = async (productId) => {
-    if (!token) {
-      alert("Inicia sesión para agregar al carrito.");
+    if (!readToken()) {
+      alert('Inicia sesión para agregar al carrito.');
       return;
     }
     try {
-      await API.post("/cart", { productId }, { headers: authHeaders });
+      await API.post('/cart', { productId });
       await fetchCart();
       setDrawerOpen(true);
     } catch (e) {
-      console.error("Error agregando al carrito:", e);
-      alert("No se pudo agregar al carrito.");
+      console.error('Error agregando al carrito:', e);
+      alert('No se pudo agregar al carrito.');
     }
   };
 
-  const removeItem = async (cartItemId) => {
+  // eliminar item completo o decrementar 1 (one=true) usando params (fiable)
+  const removeItem = async (cartItemId, { one = false } = {}) => {
     try {
-      await API.delete(`/cart/${cartItemId}`, { headers: authHeaders });
-      setItems(prev => prev.filter(i => i._id !== cartItemId));
+      await API.delete(`/cart/${cartItemId}`, {
+        params: one ? { one: true } : {},
+      });
+      await fetchCart();
     } catch (e) {
-      console.error("Error quitando item:", e);
+      console.error('Error eliminando del carrito:', e);
     }
   };
 
-  // Cambiar cantidad (+1 / -1). Para -1, si queda 0 lo quitamos
-  const changeQty = async (cartItem, delta) => {
-    const newQty = cartItem.quantity + delta;
-    if (newQty <= 0) {
-      await removeItem(cartItem._id);
-      return;
+  // Soporta ambas firmas:
+  // - changeQty(it, delta)
+  // - changeQty({ cartItemId, productId, delta })
+  const changeQty = async (arg1, arg2) => {
+    let cartItemId, productId, delta;
+    if (typeof arg2 === 'number') {
+      const it = arg1 || {};
+      delta = arg2;
+      cartItemId = it?._id;
+      productId = it?.product?._id || it?.product;
+    } else {
+      ({ cartItemId, productId, delta } = arg1 || {});
     }
-    try {
-      // Simplemente repetimos add o hacemos remove y add; si tienes endpoint PUT, úsalo aquí
-      await API.post("/cart", { productId: cartItem.product._id }, { headers: authHeaders });
-      if (delta < 0) {
-        // “bajar” a fuerza bruta: quitamos y reinsertamos newQty veces
-        // para no hacer bucles de red: recarga completa
-        await fetchCart();
-      } else {
-        await fetchCart();
-      }
-    } catch (e) {
-      console.error("Error cambiando cantidad:", e);
+
+    if (!delta) return;
+    if (delta > 0) {
+      return addItem(productId);
+    } else {
+      // decrementa 1 (si llega a 0 lo elimina en backend)
+      return removeItem(cartItemId, { one: true });
     }
   };
-
-  const count = useMemo(() => items.reduce((s, it) => s + (it.quantity || 0), 0), [items]);
-  const subtotal = useMemo(
-    () => items.reduce((s, it) => s + (Number(it.product?.price || 0) * (it.quantity || 0)), 0),
-    [items]
-  );
 
   useEffect(() => {
     fetchCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token]); // cuando tengas token (login), carga el carrito
+
+  const count = useMemo(
+    () => items.reduce((acc, it) => acc + (it.quantity || 0), 0),
+    [items]
+  );
+
+  const subtotal = useMemo(
+    () =>
+      items.reduce((acc, it) => {
+        const p = it.product || {};
+        const price = p.price ?? p.precio ?? it.price ?? it.precio ?? 0;
+        return acc + (Number(price) || 0) * (it.quantity || 0);
+      }, 0),
+    [items]
+  );
 
   const value = {
     items,
