@@ -1,59 +1,71 @@
 // src/components/ModalVerCompra.jsx
 import React, { useState, useEffect } from 'react';
-import API from '../utils/api';
-import { FiX, FiShoppingCart, FiCreditCard, FiCalendar, FiPackage, FiUser, FiMapPin, FiDollarSign, FiBox } from 'react-icons/fi';
+import API from '../utils/api'; // cliente axios configurado para llamar a tu backend
+import { 
+  FiX, FiShoppingCart, FiCreditCard, FiCalendar, 
+  FiPackage, FiUser, FiMapPin, FiDollarSign, FiBox 
+} from 'react-icons/fi'; // íconos bonitos
 
+
+// Componente Modal para ver detalles de una compra
 const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
-  const [purchase, setPurchase] = useState(null);
+  // Estados para manejar la compra, loading, error e imágenes de productos
+  const [purchase, setPurchase] = useState(null); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [productImages, setProductImages] = useState({}); // Para almacenar imágenes
+  const [productImages, setProductImages] = useState({}); // { idProducto: urlImagen }
 
+
+  // useEffect: se ejecuta cuando se abre el modal o cambia purchaseId
   useEffect(() => {
     if (isOpen && purchaseId) {
-      fetchPurchaseDetails();
+      fetchPurchaseDetails(); // si está abierto y hay ID => cargo detalles
     } else {
+      // si no está abierto => limpio estados
       setPurchase(null);
       setError('');
       setProductImages({});
     }
   }, [isOpen, purchaseId]);
 
-  // Función para obtener imágenes de productos
+
+  // Función para traer imágenes de cada producto desde la API
   const fetchProductImages = async (productIds) => {
     try {
       const images = {};
       for (const productId of productIds) {
         try {
-          // Intenta obtener la imagen del producto desde tu API
           const response = await API.get(`/products/${productId}`);
           if (response.data.imageUrl) {
-            images[productId] = response.data.imageUrl;
+            images[productId] = response.data.imageUrl; // guardo url de cada producto
           }
         } catch (error) {
           console.log(`No se pudo cargar imagen para producto ${productId}`);
         }
       }
-      setProductImages(images);
+      setProductImages(images); // guardo imágenes en el estado
     } catch (error) {
       console.error('Error cargando imágenes:', error);
     }
   };
 
+
+  // Función principal para obtener los detalles de la compra
   const fetchPurchaseDetails = async () => {
     try {
-      setLoading(true);
+      setLoading(true); // muestro cargando
       setError('');
-      const stored = JSON.parse(localStorage.getItem('user') || 'null');
+      const stored = JSON.parse(localStorage.getItem('user') || 'null'); // agarro user del localStorage
       const token = stored?.token;
 
+      // Llamo a mi backend con el token
       const { data } = await API.get(`/purchases/${purchaseId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      setPurchase(data);
-      
-      // Intentar cargar imágenes de los productos
+      setPurchase(data); // guardo la compra
+
+      // obtengo los IDs de los productos y traigo sus imágenes
       const productIds = data.items.map(item => item.product).filter(id => id);
       if (productIds.length > 0) {
         fetchProductImages(productIds);
@@ -66,7 +78,8 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
     }
   };
 
-  // Cálculo de IGV (18%)
+
+  // Calcula subtotal e IGV (18%) a partir del total
   const calculateTaxes = (total) => {
     const subtotal = total / 1.18;
     const igv = total - subtotal;
@@ -76,18 +89,24 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
     };
   };
 
+
+  // Si el modal no está abierto => no renderizo nada
   if (!isOpen) return null;
 
+
+  // Calculo impuestos si tengo compra, sino pongo 0.00
   const taxes = purchase ? calculateTaxes(purchase.total) : { subtotal: '0.00', igv: '0.00' };
   const userInfo = JSON.parse(localStorage.getItem('user') || '{}');
 
+
+  // Render del modal
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
       <div 
         className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()} // evita cerrar si hago click dentro
       >
-        {/* Header limpio y profesional */}
+        {/* Header con título y botón de cerrar */}
         <div className="bg-white border-b border-gray-200 p-6">
           <div className="flex justify-between items-center">
             <div>
@@ -114,14 +133,17 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
           </div>
         </div>
 
+
         {/* Contenido principal */}
         <div className="p-6 overflow-y-auto max-h-[calc(95vh-180px)]">
           {loading ? (
+            // Estado: cargando
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
               <p className="text-gray-600">Cargando detalles de la compra...</p>
             </div>
           ) : error ? (
+            // Estado: error
             <div className="text-center py-8">
               <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
                 <FiX className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -136,9 +158,12 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
               </div>
             </div>
           ) : purchase ? (
+            // Estado: éxito (tengo compra)
             <div className="space-y-6">
-              {/* Información de la orden */}
+              
+              {/* Información del cliente, total y estado */}
               <div className="grid md:grid-cols-3 gap-4">
+                {/* Cliente */}
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <FiUser className="h-5 w-5 text-blue-600" />
@@ -148,6 +173,7 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
                   <p className="text-xs text-gray-600">Orden: #{purchase._id.slice(-8).toUpperCase()}</p>
                 </div>
 
+                {/* Total */}
                 <div className="bg-green-50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <FiDollarSign className="h-5 w-5 text-green-600" />
@@ -157,6 +183,7 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
                   <p className="text-xs text-gray-600">{purchase.items.length} productos</p>
                 </div>
 
+                {/* Estado */}
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <FiBox className="h-5 w-5 text-gray-600" />
@@ -168,7 +195,8 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Lista de productos - CON IMÁGENES REALES */}
+
+              {/* Lista de productos con imágenes */}
               <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <div className="bg-gray-50 p-4 border-b">
                   <div className="flex items-center gap-2">
@@ -183,7 +211,8 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
                     return (
                       <div key={index} className="p-4 hover:bg-gray-50 transition-colors">
                         <div className="flex items-center gap-4">
-                          {/* IMAGEN REAL del producto */}
+                          
+                          {/* Imagen del producto (o ícono si no hay) */}
                           <div className="flex-shrink-0">
                             {productImage ? (
                               <img 
@@ -201,6 +230,7 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
                             )}
                           </div>
                           
+                          {/* Nombre, cantidad y precio unitario */}
                           <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-gray-900">{item.name}</h4>
                             <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
@@ -210,6 +240,7 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
                             </div>
                           </div>
                           
+                          {/* Subtotal */}
                           <div className="text-right">
                             <p className="text-lg font-bold text-blue-600">
                               S/ {(item.price * item.quantity).toFixed(2)}
@@ -223,7 +254,8 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Desglose de pago */}
+
+              {/* Desglose de pago: subtotal + IGV + total */}
               <div className="bg-gray-50 p-6 rounded-lg">
                 <h3 className="font-semibold text-gray-900 mb-4">Desglose de Pago</h3>
                 <div className="space-y-3 max-w-xs ml-auto">
@@ -245,7 +277,8 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
           ) : null}
         </div>
 
-        {/* Footer simple */}
+
+        {/* Footer simple con botón cerrar */}
         <div className="border-t border-gray-200 p-4 bg-white">
           <div className="flex justify-end">
             <button 
@@ -260,5 +293,6 @@ const ModalVerCompra = ({ purchaseId, isOpen, onClose }) => {
     </div>
   );
 };
+
 
 export default ModalVerCompra;

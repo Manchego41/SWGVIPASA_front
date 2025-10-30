@@ -33,6 +33,8 @@ import Catalogo from "./pages/Catalogo";
 
 // 👇 Asegúrate de tener este archivo con el código que te pasé
 import SupportWidget from "./components/SupportWidget";
+import PaymentResult from './pages/PaymentResult';
+
 
 function AppInner() {
   const location = useLocation();
@@ -64,6 +66,9 @@ function AppInner() {
 
           <Route path="/profile" element={<Profile />} />
           <Route path="/acceso-denegado" element={<AccesoDenegado />} />
+          <Route path="/payment/success" element={<PaymentResult />} />
+<Route path="/payment/failure" element={<PaymentResult />} />
+<Route path="/payment/pending" element={<PaymentResult />} />
 
           <Route
             path="/admin/*"
@@ -80,6 +85,8 @@ function AppInner() {
             <Route path="products/:id" element={<ProductEditor />} />
             <Route path="products/new" element={<ProductEditor />} />
             <Route path="stock" element={<StockManager />} />
+            
+            
           </Route>
         </Routes>
       </div>
