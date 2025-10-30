@@ -1,32 +1,30 @@
 // src/components/Navbar.jsx
-import React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import ProfileMenu from './ProfileMenu';
+import React from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import ProfileMenu from "./ProfileMenu";
+import { FiShoppingCart } from "react-icons/fi";
+import { useCart } from "../context/CartContext";
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { count, setDrawerOpen } = useCart();
 
-  // No mostrar en rutas de admin
-  if (location.pathname.startsWith('/admin')) return null;
+  if (location.pathname.startsWith("/admin")) return null;
 
-  const user = JSON.parse(localStorage.getItem('user') || 'null');
+  const user = JSON.parse(localStorage.getItem("user") || "null");
 
-  // Logout: borrar datos y llevar a login
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   return (
-    <header
-      className="fixed w-full z-10"
-      style={{ backgroundColor: '#004157' }}
-    >
+    <header className="fixed w-full z-10 bg-[#004157]">
       <nav className="container mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 cursor-pointer" onClick={() => navigate("/")}>
           <img
             src="/descarga-removebg-preview.png"
             alt="IPASA Logo"
@@ -38,41 +36,31 @@ export default function Navbar() {
         {/* Links */}
         <ul className="flex space-x-6 items-center">
           <li>
-            <NavLink
-              to="/"
-              end
-              className="text-white hover:text-[#00AEEF]"
-            >
+            <NavLink to="/" end className="text-white hover:text-[#00AEEF]">
               Home
             </NavLink>
           </li>
 
           <li>
-            <a
-              href="#productos"
-              className="text-white hover:text-[#00AEEF]"
-            >
-              Productos
-            </a>
-          </li>
-
-          <li>
-            <NavLink
-              to="/catalogo"
-              end
-              className="text-white hover:text-[#00AEEF]"
-            >
+            <NavLink to="/catalogo" end className="text-white hover:text-[#00AEEF]">
               Catálogo
             </NavLink>
           </li>
 
+          {/* Botón Carrito (abre drawer) */}
           <li>
-            <a
-              href="#contacto"
-              className="text-white hover:text-[#00AEEF]"
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="relative text-white hover:text-[#00AEEF] flex items-center gap-2"
             >
-              Contáctenos
-            </a>
+              <FiShoppingCart className="text-lg" />
+              <span>Carrito</span>
+              {count > 0 && (
+                <span className="absolute -right-3 -top-2 bg-red-500 text-white text-xs px-1.5 rounded-full">
+                  {count}
+                </span>
+              )}
+            </button>
           </li>
 
           {!user && (
@@ -86,28 +74,15 @@ export default function Navbar() {
             </li>
           )}
 
-          {user && user.role !== 'administrador' && (
-            <>
-              <li>
-                <NavLink
-                  to="/cart"
-                  className="text-white hover:text-[#00AEEF]"
-                >
-                  Carrito
-                </NavLink>
-              </li>
-              <li>
-                <ProfileMenu user={user} onLogout={handleLogout} />
-              </li>
-            </>
+          {user && user.role !== "administrador" && (
+            <li>
+              <ProfileMenu user={user} onLogout={handleLogout} />
+            </li>
           )}
 
-          {user && user.role === 'administrador' && (
+          {user && user.role === "administrador" && (
             <li>
-              <NavLink
-                to="/admin"
-                className="text-white hover:text-[#00AEEF]"
-              >
+              <NavLink to="/admin" className="text-white hover:text-[#00AEEF]">
                 Panel Admin
               </NavLink>
             </li>

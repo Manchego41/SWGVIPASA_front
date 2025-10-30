@@ -1,17 +1,41 @@
 // src/pages/Profile.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import API from '../utils/api';
-import ModalVerCompra from '../components/ModalVerCompra';
+
+import PurchaseDetailModal from '../components/PurchaseDetailModal';
+
+const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
+
 
 export default function Profile() {
   const stored = JSON.parse(localStorage.getItem('user') || 'null');
   const token  = stored?.token;
+  const currentUserName =
+    stored?.name ||
+    stored?.user?.name ||
+    stored?.username ||
+    stored?.email ||
+    "";
 
-  const [purchases, setPurchases] = useState([]);
-  const [search, setSearch]       = useState('');
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
+
+  const [purchases, setPurchases]   = useState([]);
+  const [search, setSearch]         = useState('');
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState('');
+
+  // Sidebar "activo": info | compras | devoluciones
+  const [activeTab, setActiveTab]   = useState('compras');
+
+  // Modal de detalle
+  const [showDetail, setShowDetail] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
+
+  // Catálogo para imágenes (Mongo -> imageUrl)
+  const [productsById, setProductsById] = useState({});
+  const [productsByName, setProductsByName] = useState({});
+
+  const openDetail  = (p) => { setSelectedPurchase(p); setShowDetail(true); };
+  const closeDetail = () => { setShowDetail(false); setSelectedPurchase(null); };
 
   // Cargar compras desde tu API: /api/purchases/mine
   useEffect(() => {
@@ -21,7 +45,6 @@ export default function Profile() {
         const { data } = await API.get('/purchases/mine', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        // data es un arreglo de compras: { _id, createdAt, items: [{name, price, quantity}], total }
         setPurchases(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Error al cargar compras', err);
@@ -33,6 +56,29 @@ export default function Profile() {
     }
     if (token) fetchPurchases();
   }, [token]);
+
+  // Cargar catálogo para tener imageUrl (ajusta el endpoint si tu back usa otro)
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const { data } = await API.get('/products');
+        if (Array.isArray(data)) {
+          const byId = {};
+          const byName = {};
+          for (const p of data) {
+            if (p?._id) byId[p._id] = p;
+            if (p?.name) byName[p.name.toLowerCase()] = p;
+          }
+          setProductsById(byId);
+          setProductsByName(byName);
+        }
+      } catch (e) {
+        // No bloquea: si falla, solo no habrá imágenes mapeadas
+        console.warn('No se pudo cargar el catálogo para imágenes', e?.message);
+      }
+    }
+    fetchProducts();
+  }, []);
 
   // Filtrar por búsqueda (por nombre de producto dentro de cada compra)
   const filtered = useMemo(() => {
@@ -46,7 +92,7 @@ export default function Profile() {
   return (
     <div className="pt-16 bg-gray-100 min-h-screen flex">
       {/* Sidebar */}
-      <aside className="w-1/4 bg-white shadow p-4 space-y-6">
+      <aside className="w-full md:w-1/4 bg-white shadow p-4 space-y-6 md:sticky md:top-16 h-max">
         <h2 className="text-xl font-semibold mb-2">Mi perfil</h2>
         <img
           src="/avatar.png"
@@ -54,120 +100,138 @@ export default function Profile() {
           className="w-full rounded-lg mb-4"
         />
 
-        <ul className="space-y-2 text-gray-700">
-          <li className="hover:text-blue-600 cursor-pointer">Información personal</li>
-          <li className="text-blue-600 font-semibold cursor-default">Compras</li>
-          <li className="hover:text-blue-600 cursor-pointer">Devoluciones</li>
-        </ul>
+        <div className="space-y-2">
+          <button
+            onClick={() => setActiveTab('info')}
+            className={`w-full text-left px-3 py-2 rounded-lg ${activeTab === 'info' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'}`}
+          >
+            Información personal
+          </button>
+          <button
+            onClick={() => setActiveTab('compras')}
+            className={`w-full text-left px-3 py-2 rounded-lg ${activeTab === 'compras' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'}`}
+          >
+            Compras
+          </button>
+          <button
+            onClick={() => setActiveTab('devoluciones')}
+            className={`w-full text-left px-3 py-2 rounded-lg ${activeTab === 'devoluciones' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'}`}
+          >
+            Devoluciones
+          </button>
+        </div>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 p-6">
-        <h1 className="text-2xl font-bold mb-4">Compras</h1>
+        <h1 className="text-2xl font-bold mb-4">
+          {activeTab === 'info' ? 'Información personal' :
+           activeTab === 'devoluciones' ? 'Devoluciones' : 'Compras'}
+        </h1>
 
-        {/* Buscador */}
-        <input
-          type="text"
-          placeholder="Buscar por producto…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full mb-6 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-
-        {loading ? (
-          <div className="text-gray-600">Cargando historial…</div>
-        ) : error ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">
-            {error}
-          </div>
-        ) : filtered.length === 0 ? (
-          <p className="text-center text-gray-500">No hay compras que mostrar.</p>
-        ) : (
-          <div className="space-y-6">
-            {filtered.map(p => (
-              <div
-                key={p._id}
-                className="bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <div className="font-semibold text-lg">
-                      Compra #{String(p._id).slice(-6).toUpperCase()}
-                    </div>
-                    <div className="text-gray-500 text-sm">
-                      {p.createdAt ? new Date(p.createdAt).toLocaleDateString('es-PE', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      }) : ''}
-                    </div>
-                  </div>
-                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                    {p.status === 'recorded' ? 'Registrada' : 'Completada'}
-                  </span>
-                </div>
-
-                {/* Items */}
-                <div className="mb-4">
-                  {(p.items || []).slice(0, 3).map((it, idx) => (
-                    <div
-                      key={idx}
-                      className="py-2 flex justify-between items-center border-b border-gray-100 last:border-b-0"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">{it.name}</div>
-                        <div className="text-gray-500 text-sm">
-                          Cantidad: {it.quantity} × S/ {Number(it.price).toFixed(2)}
-                        </div>
-                      </div>
-                      <div className="font-semibold">
-                        S/ {(Number(it.price) * Number(it.quantity)).toFixed(2)}
-                      </div>
-                    </div>
-                  ))}
-                  {(p.items || []).length > 3 && (
-                    <div className="text-center text-blue-600 text-sm mt-2">
-                      +{(p.items || []).length - 3} productos más...
-                    </div>
-                  )}
-                </div>
-
-                {/* Total */}
-                <div className="flex justify-between items-center mb-4">
-                  <div className="text-lg font-bold text-gray-900">
-                    Total: S/ {Number(p.total).toFixed(2)}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {(p.items || []).length} producto{(p.items || []).length !== 1 ? 's' : ''}
-                  </div>
-                </div>
-
-                {/* Acciones */}
-                <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={() => setSelectedPurchase(p._id)}
-                    className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
-                  >
-                    Ver compra
-                  </button>
-                  <button className="w-full bg-gray-100 text-gray-700 py-2 rounded-lg hover:bg-gray-200 transition-colors font-medium">
-                    Hacer Devolución
-                  </button>
-                </div>
-              </div>
-            ))}
+        {/* Placeholders simples en otras pestañas */}
+        {activeTab === 'info' && (
+          <div className="bg-white rounded-lg p-4 shadow text-gray-600">
+            (Aquí puedes mostrar/editar tus datos personales)
           </div>
         )}
 
-        {/* Modal de Ver Compra */}
-        <ModalVerCompra 
-          purchaseId={selectedPurchase}
-          isOpen={!!selectedPurchase}
-          onClose={() => setSelectedPurchase(null)}
-        />
+        {activeTab === 'devoluciones' && (
+          <div className="bg-white rounded-lg p-4 shadow text-gray-600">
+            (Aquí irá el flujo de devoluciones)
+          </div>
+        )}
+
+        {activeTab === 'compras' && (
+          <>
+            {/* Buscador */}
+            <input
+              type="text"
+              placeholder="Buscar por producto…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full mb-6 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+
+            {loading ? (
+              <div className="text-gray-600">Cargando historial…</div>
+            ) : error ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-red-700">
+                {error}
+              </div>
+            ) : filtered.length === 0 ? (
+              <p className="text-center text-gray-500">No hay compras que mostrar.</p>
+            ) : (
+              <div className="space-y-6">
+                {filtered.map(p => (
+                  <div
+                    key={p._id}
+                    className="bg-white rounded-lg p-4 shadow"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="font-semibold">
+                        Compra #{String(p._id).slice(-6)}
+                      </div>
+                      <div className="text-gray-500 text-sm">
+                        {p.createdAt ? new Date(p.createdAt).toLocaleString() : ''}
+                      </div>
+                    </div>
+
+                    {/* Items (resumen) */}
+                    <div className="mt-3 divide-y">
+                      {(p.items || []).map((it, idx) => (
+                        <div
+                          key={idx}
+                          className="py-2 flex justify-between items-center"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium">{it.name}</div>
+                            <div className="text-gray-500 text-sm">
+                              Cantidad: {it.quantity}
+                            </div>
+                          </div>
+                          <div className="font-semibold">
+                            {money(Number(it.price) * Number(it.quantity))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Total */}
+                    <div className="mt-3 text-right font-semibold">
+                      Total: {money(p.total)}
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => openDetail(p)}
+                        className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+                      >
+                        Ver compra
+                      </button>
+                      <button className="w-full bg-blue-100 text-blue-600 py-2 rounded hover:bg-blue-200">
+                        Hacer Devolución
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
       </main>
+
+      {/* MODAL de detalle con imágenes desde MongoDB + "Completado" + Desglose */}
+      <PurchaseDetailModal
+        open={showDetail}
+        onClose={closeDetail}
+        purchase={selectedPurchase}
+        productsById={productsById}
+        productsByName={productsByName}
+        currentUserName={currentUserName}
+      />
     </div>
   );
 }
