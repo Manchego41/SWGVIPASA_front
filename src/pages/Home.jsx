@@ -67,18 +67,48 @@ export default function Home() {
 
               <div className="space-y-4">
                 <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-500 font-semibold">Oficina Principal</p>
+                  <p className="font-medium text-gray-800">Av. Republica de Panama 4085 - Surquillo</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-500 font-semibold">Almacenes</p>
+                  <p className="font-medium text-gray-800">Calle Costa Azul s/n - Chorrillos</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-500 font-semibold">Planta</p>
+                  <p className="font-medium text-gray-800">Av. Manuel F Vega #151 - Chincha</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-500">Correo</p>
-                  <p className="font-medium text-gray-800">ventas@ipasa.com</p>
+                  <p className="font-medium text-gray-800">scliente@grupovega.com</p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-500">Teléfono</p>
-                  <p className="font-medium text-gray-800">+51 922 402 449</p>
+                  <p className="font-medium text-gray-800">(511) 213-7900</p>
                 </div>
                 <div className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-500">Horario</p>
-                  <p className="font-medium text-gray-800">
-                    Lun a Vie: 9:00 – 18:00
-                  </p>
+                  <p className="text-sm text-gray-500">Website</p>
+                  <a href="http://www.grupovega.com" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:text-blue-800">
+                    www.grupovega.com
+                  </a>
+                </div>
+              </div>
+
+              {/* Mapa de Google */}
+              <div className="mt-8 md:col-span-2">
+                <h3 className="text-xl font-semibold text-[#004157] mb-4">Ubicación de la Oficina Principal</h3>
+                <div className="w-full h-[400px] rounded-lg overflow-hidden shadow-lg">
+                  <iframe
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3901.357771407121!2d-77.02126362570654!3d-12.111355243983682!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9105c7e8de664ea5%3A0x5c7f326148da89a3!2sAv.%20Rep%C3%BAblica%20de%20Panam%C3%A1%204085%2C%20Surquillo%2015047!5e0!3m2!1ses!2spe!4v1699125397844!5m2!1ses!2spe"
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Ubicación de la Oficina Principal"
+                    className="rounded-lg"
+                  ></iframe>
                 </div>
               </div>
             </div>

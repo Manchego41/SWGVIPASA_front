@@ -91,11 +91,6 @@ export default function Profile() {
       {/* Sidebar */}
       <aside className="w-full md:w-1/4 bg-white shadow p-4 space-y-6 md:sticky md:top-16 h-max">
         <h2 className="text-xl font-semibold mb-2">Mi perfil</h2>
-        <img
-          src="/avatar.png"
-          alt="Avatar usuario"
-          className="w-full rounded-lg mb-4"
-        />
 
         <div className="space-y-2">
           <button
