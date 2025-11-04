@@ -611,7 +611,7 @@ function Timeline({ history = [], current }) {
 
 function humanizeReason(r) {
   const map = {
-    defectuoso: 'Producto defectuoso',
+    defectuoso: 'Producto defectuososos',
     incompleto: 'Pedido incompleto',
     equivocado: 'Producto equivocado',
     no_satisfecho: 'No satisface expectativas',
