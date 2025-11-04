@@ -35,16 +35,19 @@ import SupportWidget from "./components/SupportWidget";
 function AppInner() {
   const location = useLocation();
 
-  // Visible en todas las páginas públicas, oculto en /admin y /login
+  // Ocultar header (Navbar + MiniCart) y chat en /admin y /login
   const hideOn = [/^\/admin\b/, /^\/login\b/];
-  const showSupport = !hideOn.some((rx) => rx.test(location.pathname));
+  const hideHeader = hideOn.some((rx) => rx.test(location.pathname));
+  const showSupport = !hideHeader;
 
   return (
     <>
-      <Navbar />
-      <MiniCartDrawer />
+      {/* Header público solo cuando NO estamos en /admin o /login */}
+      {!hideHeader && <Navbar />}
+      {!hideHeader && <MiniCartDrawer />}
 
-      <div className="pt-16">
+      {/* En páginas públicas dejamos el padding-top para el Navbar; en admin/login NO */}
+      <div className={hideHeader ? "" : "pt-16"}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/catalogo" element={<Catalogo />} />
@@ -82,16 +85,12 @@ function AppInner() {
         </Routes>
       </div>
 
-      {/* 👇 Chat visible en todas las páginas públicas */}
+      {/* Chat solo en páginas públicas */}
       {showSupport && <SupportWidget />}
-
-      {/*
-        Si lo quieres visible en TODAS las páginas (incluido /admin y /login),
-        reemplaza la línea anterior por:  <SupportWidget />
-      */}
     </>
   );
 }
+
 
 function App() {
   return (
