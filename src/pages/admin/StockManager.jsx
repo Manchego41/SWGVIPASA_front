@@ -38,7 +38,7 @@ export default function StockManager() {
     <section className="p-6">
       {/* Encabezado con botón “Agregar Producto” */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Gestión de Productos</h1>
+        <h1 className="text-3xl font-extrabold text-slate-900 mb-4">Gestión de Productos</h1>
         <button
           onClick={goNew}
           className="inline-flex items-center gap-2 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
@@ -47,25 +47,29 @@ export default function StockManager() {
         </button>
       </div>
 
-      <div className="bg-white rounded shadow overflow-x-auto">
+      <div className="overflow-hidden rounded-2xl shadow-sm border border-slate-200/80 bg-transparent">
         {loading ? (
           <div className="p-4 text-gray-600">Cargando…</div>
         ) : error ? (
           <div className="p-4 text-red-600">{error}</div>
         ) : (
-          <table className="w-full text-left">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-2">ID</th>
-                <th className="px-4 py-2">Producto</th>
-                <th className="px-4 py-2">Precio Unitario</th>
-                <th className="px-4 py-2">Stock</th>
-                <th className="px-4 py-2">Acciones</th>
-              </tr>
-            </thead>
+          <table className="min-w-full text-left border-separate border-spacing-0">
+            <thead className="text-white">
+  <tr className="bg-gradient-to-b from-[#0F1A3A] to-[#0B1327]">
+    <th className="px-4 py-3 font-semibold tracking-wide rounded-l-xl">ID</th>
+    <th className="px-4 py-3 font-semibold tracking-wide">Producto</th>
+    <th className="px-4 py-3 font-semibold tracking-wide">Precio Unitario</th>
+    <th className="px-4 py-3 font-semibold tracking-wide">Stock</th>
+    <th className="px-4 py-3 font-semibold tracking-wide rounded-r-xl">Acciones</th>
+  </tr>
+</thead>
+
             <tbody>
               {products.map((p, idx) => (
-                <tr key={p._id || idx} className="border-t">
+                <tr key={p._id || idx} className="border-t odd:bg-white even:bg-slate-50 hover:bg-white transition
+    hover:bg-white
+    border-t border-slate-200/80
+    transition">
                   <td className="px-4 py-2">
                     {p._id ? String(p._id).slice(-6) : idx + 1}
                   </td>
