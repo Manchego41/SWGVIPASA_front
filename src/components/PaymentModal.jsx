@@ -4,28 +4,19 @@ import { FiX, FiCreditCard, FiSmartphone, FiDollarSign } from "react-icons/fi";
 
 const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
 
-// Normaliza campos venidos del cart, vengan como vengan
-const getId = (it) =>
-  it?.product?._id || it?.productId || it?._id || it?.id;
-
-const getName = (it) =>
-  it?.name || it?.product?.name || "Producto";
-
-const getPrice = (it) =>
-  Number(it?.price ?? it?.product?.price ?? 0);
-
-const getQty = (it) =>
-  Number(it?.qty ?? it?.quantity ?? 1);
-
+const getProduct = (it) => it?.product || {};
+const getName = (it) => getProduct(it)?.name || it?.name || "Producto";
+const getPrice = (it) => Number(getProduct(it)?.price ?? it?.price ?? 0);
+const getQty = (it) => Number(it?.quantity ?? it?.qty ?? 1);
 const getImage = (it) =>
-  it?.imageUrl || it?.image || it?.product?.imageUrl || it?.product?.image || "";
+  getProduct(it)?.imageUrl || it?.imageUrl || it?.image || "";
 
 export default function PaymentModal({
   open,
   onClose,
   items = [],
   subtotal = 0,
-  onConfirm,        // function(method) -> Promise|void
+  onConfirm,
 }) {
   const [method, setMethod] = useState("");
 
@@ -48,10 +39,10 @@ export default function PaymentModal({
   if (!open) return null;
 
   const methods = [
-    { id: "visa", label: "Visa", sub: "Pago con tarjeta Visa", icon: <FiCreditCard /> },
-    { id: "yape", label: "Yape", sub: "Pago rápido con Yape", icon: <FiSmartphone /> },
-    { id: "plin", label: "Plin", sub: "Pago rápido con Plin", icon: <FiSmartphone /> },
-    { id: "efectivo", label: "Efectivo", sub: "Pago en efectivo al recibir", icon: <FiDollarSign /> },
+    { id: "visa", label: "Visa", sub: "Pago con tarjeta Visa" },
+    { id: "yape", label: "Yape", sub: "Pago rápido con Yape" },
+    { id: "plin", label: "Plin", sub: "Pago rápido con Plin" },
+    { id: "efectivo", label: "Efectivo", sub: "Pago en efectivo al recibir" },
   ];
 
   const handleConfirm = async () => {
@@ -83,7 +74,7 @@ export default function PaymentModal({
                   const price = getPrice(it);
                   const line = qty * price;
                   return (
-                    <div key={getId(it) ?? idx} className="flex items-center justify-between bg-gray-50 border rounded-xl p-3">
+                    <div key={it._id || getProduct(it)?._id || idx} className="flex items-center justify-between bg-gray-50 border rounded-xl p-3">
                       <div className="flex items-center gap-3">
                         {getImage(it) ? (
                           <img src={getImage(it)} alt={getName(it)} className="w-10 h-10 object-contain" />
@@ -124,13 +115,8 @@ export default function PaymentModal({
                         active ? "border-indigo-500 ring-2 ring-indigo-200 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
                       ].join(" ")}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={["text-xl", active ? "text-indigo-600" : "text-gray-600"].join(" ")}>{m.icon}</div>
-                        <div>
-                          <div className="font-semibold text-gray-800">{m.label}</div>
-                          <div className="text-xs text-gray-500">{m.sub}</div>
-                        </div>
-                      </div>
+                      <div className="font-semibold text-gray-800">{m.label}</div>
+                      <div className="text-xs text-gray-500">{m.sub}</div>
                     </button>
                   );
                 })}

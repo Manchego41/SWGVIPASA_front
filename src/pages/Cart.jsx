@@ -8,21 +8,14 @@ import PaymentModal from "../components/PaymentModal";
 
 const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
 
-// Normalizadores para sobrevivir al zoológico de estructuras
-const getId = (it) =>
-  it?.product?._id || it?.productId || it?._id || it?.id;
-
-const getName = (it) =>
-  it?.name || it?.product?.name || "Producto";
-
-const getPrice = (it) =>
-  Number(it?.price ?? it?.product?.price ?? 0);
-
-const getQty = (it) =>
-  Number(it?.qty ?? it?.quantity ?? 1);
-
+// Helpers para leer el shape de tu backend
+const getCartItemId = (it) => it?._id;
+const getProduct = (it) => it?.product || {};
+const getPrice = (it) => Number(getProduct(it)?.price ?? it?.price ?? 0);
+const getQty = (it) => Number(it?.quantity ?? it?.qty ?? 1);
+const getName = (it) => getProduct(it)?.name || it?.name || "Producto";
 const getImage = (it) =>
-  it?.imageUrl || it?.image || it?.product?.imageUrl || it?.product?.image || "";
+  getProduct(it)?.imageUrl || it?.imageUrl || it?.image || "";
 
 export default function Cart() {
   // Redirección si no hay token
@@ -30,27 +23,17 @@ export default function Cart() {
   const token = stored?.token;
   if (!token) return <Navigate to="/login" replace />;
 
-  const headers = { Authorization: `Bearer ${token}` };
   const { items, changeQty, removeItem, subtotal, fetchCart } = useCart();
 
   const [showModal, setShowModal] = useState(false);
   const [paying, setPaying] = useState(false);
 
-  // Cálculo robusto del total
-  const total = useMemo(
-    () =>
-      (items || []).reduce((acc, it) => acc + getQty(it) * getPrice(it), 0),
-    [items]
-  );
+  const total = useMemo(() => subtotal, [subtotal]);
 
   const handleConfirmPayment = async (method) => {
     try {
       setPaying(true);
-      await API.post(
-        "/cart/checkout-local",
-        { method },
-        { headers }
-      );
+      await API.post("/cart/checkout-local", { method });
       await fetchCart();
       setShowModal(false);
       alert(`Compra registrada correctamente. Método: ${method.toUpperCase()}`);
@@ -62,21 +45,14 @@ export default function Cart() {
     }
   };
 
-  const handleDec = (it) => {
-    const id = getId(it);
-    const next = Math.max(1, getQty(it) - 1);
-    changeQty(id, next);
-  };
+  // Ahora sí: delta +1 / -1 y pasando el item completo
+  const handleDec = (it) => changeQty(it, -1);
+  const handleInc = (it) => changeQty(it, +1);
 
-  const handleInc = (it) => {
-    const id = getId(it);
-    const next = getQty(it) + 1;
-    changeQty(id, next);
-  };
-
+  // Para borrar, envía el _id del ítem del carrito
   const handleRemove = (it) => {
-    const id = getId(it);
-    removeItem(id);
+    const cartItemId = getCartItemId(it);
+    if (cartItemId) removeItem(cartItemId);
   };
 
   return (
@@ -102,16 +78,20 @@ export default function Cart() {
               )}
 
               {items?.map((it) => {
-                const id = getId(it);
-                const qty = getQty(it);
                 const price = getPrice(it);
-                const line = qty * price;
+                const qty = getQty(it);
+                const line = price * qty;
+                const key = getCartItemId(it) || getProduct(it)?._id || getName(it);
 
                 return (
-                  <div key={id} className="grid grid-cols-12 items-center px-6 py-4 border-t">
+                  <div key={key} className="grid grid-cols-12 items-center px-6 py-4 border-t">
                     <div className="col-span-6 flex items-center gap-4">
                       {getImage(it) ? (
-                        <img src={getImage(it)} alt={getName(it)} className="w-12 h-12 object-contain rounded-md bg-white" />
+                        <img
+                          src={getImage(it)}
+                          alt={getName(it)}
+                          className="w-12 h-12 object-contain rounded-md bg-white"
+                        />
                       ) : (
                         <div className="w-12 h-12 rounded-md bg-gray-200" />
                       )}
@@ -132,11 +112,17 @@ export default function Cart() {
 
                     <div className="col-span-2">
                       <div className="flex items-center justify-center gap-3">
-                        <button className="p-2 rounded-full border hover:bg-gray-50" onClick={() => handleDec(it)}>
+                        <button
+                          className="p-2 rounded-full border hover:bg-gray-50"
+                          onClick={() => handleDec(it)}
+                        >
                           <FiMinus />
                         </button>
                         <span className="w-6 text-center">{qty}</span>
-                        <button className="p-2 rounded-full border hover:bg-gray-50" onClick={() => handleInc(it)}>
+                        <button
+                          className="p-2 rounded-full border hover:bg-gray-50"
+                          onClick={() => handleInc(it)}
+                        >
                           <FiPlus />
                         </button>
                       </div>

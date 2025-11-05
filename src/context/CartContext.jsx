@@ -32,6 +32,7 @@ export function CartProvider({ children }) {
     setLoading(true);
     try {
       const { data } = await API.get('/cart');
+      // Backend devuelve { items:[...] } o directamente []
       setItems(Array.isArray(data) ? data : data?.items || []);
     } catch {
       setItems([]); // 401 u otro error → limpiar
@@ -51,12 +52,12 @@ export function CartProvider({ children }) {
       await fetchCart();
       setDrawerOpen(true);
     } catch (e) {
-      console.error('Error agregando al carrito:', e);
+      console.error('Error agregando al carrito:', e?.response || e);
       alert('No se pudo agregar al carrito.');
     }
   };
 
-  // eliminar item completo o decrementar 1 (one=true) usando params (fiable)
+  // eliminar item completo o decrementar 1 (one=true) usando cartItemId
   const removeItem = async (cartItemId, { one = false } = {}) => {
     try {
       await API.delete(`/cart/${cartItemId}`, {
@@ -64,28 +65,35 @@ export function CartProvider({ children }) {
       });
       await fetchCart();
     } catch (e) {
-      console.error('Error eliminando del carrito:', e);
+      console.error('Error eliminando del carrito:', e?.response || e);
     }
   };
 
-  // Soporta ambas firmas:
-  // - changeQty(it, delta)
-  // - changeQty({ cartItemId, productId, delta })
-  const changeQty = async (arg1, arg2) => {
-    let cartItemId, productId, delta;
-    if (typeof arg2 === 'number') {
-      const it = arg1 || {};
-      delta = arg2;
-      cartItemId = it?._id;
-      productId = it?.product?._id || it?.product;
+  // Cambiar cantidad por delta: +1 o -1
+  // Firma soportada: changeQty(itemCompleto, delta)
+  const changeQty = async (itemOrArgs, maybeDelta) => {
+    let item, delta;
+
+    if (typeof maybeDelta === 'number') {
+      // Firma clásica: (item, delta)
+      item = itemOrArgs || {};
+      delta = maybeDelta;
     } else {
-      ({ cartItemId, productId, delta } = arg1 || {});
+      // Firma alternativa: ({ cartItemId, productId, delta })
+      const args = itemOrArgs || {};
+      item = { _id: args.cartItemId, product: args.productId ? { _id: args.productId } : undefined };
+      delta = args.delta;
     }
 
     if (!delta) return;
+
     if (delta > 0) {
+      const productId = item?.product?._id || item?.product || null;
+      if (!productId) return;
       return addItem(productId);
     } else {
+      const cartItemId = item?._id;
+      if (!cartItemId) return;
       // decrementa 1 (si llega a 0 lo elimina en backend)
       return removeItem(cartItemId, { one: true });
     }
@@ -93,7 +101,7 @@ export function CartProvider({ children }) {
 
   useEffect(() => {
     fetchCart();
-  }, [token]); // cuando tengas token (login), carga el carrito
+  }, [token]);
 
   const count = useMemo(
     () => items.reduce((acc, it) => acc + (it.quantity || 0), 0),
@@ -115,8 +123,8 @@ export function CartProvider({ children }) {
     loading,
     fetchCart,
     addItem,
-    removeItem,
-    changeQty,
+    removeItem,     // removeItem(cartItemId, { one })
+    changeQty,      // changeQty(item, +1 | -1)
     count,
     subtotal,
     drawerOpen,
