@@ -20,11 +20,11 @@ export default function AdminDashboard() {
     fetchSales();
   }, []);
 
-  // 🔹 Calcular totales
+  // Calcular totales
   const totalSales = sales.reduce((sum, s) => sum + (s.total || 0), 0);
-  const totalOrders = sales.length; // cantidad de órdenes
+  const totalOrders = sales.length;
 
-  // 🔹 Datos para el gráfico
+  // Datos del gráfico
   const chartData = {
     labels: sales.map((s) =>
       s.createdAt
@@ -39,34 +39,147 @@ export default function AdminDashboard() {
       {
         label: "Ventas (S/)",
         data: sales.map((s) => s.total || 0),
-        borderColor: "rgba(75,192,192,1)",
-        backgroundColor: "rgba(75,192,192,0.2)",
+        borderColor: "#4CAF50",
+        backgroundColor: "rgba(76, 175, 80, 0.2)",
         fill: true,
-        tension: 0.3,
+        tension: 0.4,
       },
     ],
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Dashboard del Administrador</h1>
+    <div
+      style={{
+        padding: "40px",
+        backgroundColor: "#f8f9fa",
+        minHeight: "100vh",
+        fontFamily: "Segoe UI, sans-serif",
+      }}
+    >
+      <h1
+        style={{
+          color: "#333",
+          marginBottom: "2rem",
+          fontWeight: 700,
+          fontSize: "1.8rem",
+        }}
+      >
+        📊 Dashboard del Administrador
+      </h1>
 
-      {/* Totales */}
-      <div style={{ display: "flex", gap: "2rem", marginBottom: "2rem" }}>
-        <div style={{ background: "#f5f5f5", padding: 20, borderRadius: 8 }}>
-          <h3>Total Ventas</h3>
-          <p>S/ {totalSales.toFixed(2)}</p>
+      {/* Contenedor de totales */}
+      <div
+        style={{
+          display: "flex",
+          gap: "2rem",
+          marginBottom: "2.5rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            flex: "1 1 250px",
+            background: "white",
+            padding: "25px",
+            borderRadius: "16px",
+            boxShadow: "0 3px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3
+            style={{
+              color: "#555",
+              marginBottom: "10px",
+              fontWeight: 600,
+            }}
+          >
+            Total Ventas
+          </h3>
+          <p
+            style={{
+              fontSize: "1.6rem",
+              fontWeight: "bold",
+              color: "#4CAF50",
+            }}
+          >
+            S/ {totalSales.toFixed(2)}
+          </p>
         </div>
-        <div style={{ background: "#f5f5f5", padding: 20, borderRadius: 8 }}>
-          <h3>Total Órdenes</h3>
-          <p>{totalOrders}</p>
+
+        <div
+          style={{
+            flex: "1 1 250px",
+            background: "white",
+            padding: "25px",
+            borderRadius: "16px",
+            boxShadow: "0 3px 10px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3
+            style={{
+              color: "#555",
+              marginBottom: "10px",
+              fontWeight: 600,
+            }}
+          >
+            Total Órdenes
+          </h3>
+          <p
+            style={{
+              fontSize: "1.6rem",
+              fontWeight: "bold",
+              color: "#2196F3",
+            }}
+          >
+            {totalOrders}
+          </p>
         </div>
       </div>
 
-      {/* Gráfico */}
-      <div style={{ background: "#fff", padding: 20, borderRadius: 8 }}>
-        <h3>Historial de Ventas</h3>
-        <Line data={chartData} />
+      {/* Contenedor del gráfico */}
+      <div
+        style={{
+          background: "white",
+          padding: "30px",
+          borderRadius: "16px",
+          boxShadow: "0 3px 15px rgba(0,0,0,0.08)",
+        }}
+      >
+        <div style={{ marginBottom: "1rem" }}>
+          <h3
+            style={{
+              color: "#333",
+              fontWeight: 600,
+              marginBottom: "0.5rem",
+            }}
+          >
+            Historial de Ventas
+          </h3>
+          <p style={{ color: "#888", fontSize: "0.9rem" }}>
+            Evolución diaria de las ventas registradas
+          </p>
+        </div>
+        <Line
+          data={chartData}
+          options={{
+            responsive: true,
+            plugins: {
+              legend: {
+                position: "top",
+                labels: { color: "#333" },
+              },
+            },
+            scales: {
+              x: {
+                ticks: { color: "#555" },
+                grid: { color: "rgba(200,200,200,0.1)" },
+              },
+              y: {
+                ticks: { color: "#555" },
+                grid: { color: "rgba(200,200,200,0.1)" },
+              },
+            },
+          }}
+        />
       </div>
     </div>
   );
