@@ -1,65 +1,64 @@
 // src/layouts/AdminLayout.jsx
 import React from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { FiHome, FiUsers, FiStar, FiLogOut } from 'react-icons/fi';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
 
-  const linkBase =
-    'block px-3 py-2 rounded text-gray-200 hover:text-white hover:bg-white/10';
-  const linkActive =
-    'block px-3 py-2 rounded bg-white/15 text-white font-semibold';
-
   const logout = () => {
-    localStorage.removeItem('user');
-    navigate('/login');
+    try {
+      localStorage.removeItem('user');
+    } finally {
+      navigate('/login');
+    }
   };
 
+  const linkBase =
+    'flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/10 hover:text-white transition';
+  const linkActive =
+    'flex items-center gap-3 px-4 py-3 rounded-xl bg-cyan-600 text-white';
+
   return (
-    <div className="min-h-screen flex bg-gray-100">
+    <div className="min-h-screen flex bg-slate-100">
       {/* Sidebar */}
-      <aside className="w-60 bg-slate-900 text-white flex flex-col">
-        <div className="px-4 py-4 border-b border-white/10">
-          <h2 className="text-xl font-bold">Panel Admin</h2>
+      <aside className="w-64 bg-[#0b1736] text-white p-4 space-y-4">
+        <div className="flex items-center gap-3 p-2">
+          <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-white/20" />
+          </div>
+          <div>
+            <div className="text-cyan-300 font-extrabold tracking-wide leading-5">
+              ACCOUNT
+            </div>
+            <div className="text-white/70 text-sm">Panel Admin</div>
+          </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
-          <NavLink
-            to="/admin"
-            end
-            className={({ isActive }) => (isActive ? linkActive : linkBase)}
-          >
-            Dashboard
+        <nav className="mt-6 space-y-2">
+          <NavLink to="/admin" end className={({isActive}) => isActive ? linkActive : linkBase}>
+            <FiHome className="text-lg" /> <span>Dashboard</span>
           </NavLink>
-
-          <NavLink
-            to="/admin/users"
-            className={({ isActive }) => (isActive ? linkActive : linkBase)}
-          >
-            Usuarios
+          <NavLink to="/admin/users" className={({isActive}) => isActive ? linkActive : linkBase}>
+            <FiUsers className="text-lg" /> <span>Usuarios</span>
           </NavLink>
-
-          {/* 👇 Renombrado: Gestión de Productos (antes “Gestión de Stock”) */}
-          <NavLink
-            to="/admin/stock"
-            className={({ isActive }) => (isActive ? linkActive : linkBase)}
-          >
-            Gestión de Productos
+          <NavLink to="/admin/stock" className={({isActive}) => isActive ? linkActive : linkBase}>
+            <FiStar className="text-lg" /> <span>Gestión de Productos</span>
           </NavLink>
         </nav>
 
-        <div className="p-3 border-t border-white/10">
+        <div className="pt-2 border-t border-white/10">
           <button
             onClick={logout}
-            className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded"
+            className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl transition"
           >
-            Cerrar Sesión
+            <FiLogOut /> Cerrar Sesión
           </button>
         </div>
       </aside>
 
       {/* Contenido */}
-      <main className="flex-1">
+      <main className="flex-1 p-6">
         <Outlet />
       </main>
     </div>

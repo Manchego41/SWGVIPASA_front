@@ -1,69 +1,87 @@
 // src/pages/admin/ProductsList.jsx
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../../utils/api';
 
+const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
+const shortId = (id) => String(id || '').slice(0,6) || '-';
+
 export default function ProductsList() {
-  const [products, setProducts] = useState([]);
+  const navigate = useNavigate();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    // si aún no tienes endpoint real, puedes poner aquí un array fijo
-    API.get('/products')
-      .then(res => setProducts(res.data))
-      .catch(err => {
-        console.error(err);
-        // fallback a productos ficticios
-        setProducts([
-          { _id: '1', name: 'Producto A', price: 10.0 },
-          { _id: '2', name: 'Producto B', price: 20.0 },
-          { _id: '3', name: 'Producto C', price: 15.5 },
-        ]);
-      });
-  }, []);
-
-  const handleView = p => {
-    alert(`ID: ${p._id}\nNombre: ${p.name}\nPrecio: S/ ${p.price.toFixed(2)}`);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await API.get('/products');
+      const data = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+      setRows(data);
+    } catch (e) {
+      console.error(e);
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = id => {
-    if (!window.confirm('¿Borrar este producto?')) return;
-    API.delete(`/products/${id}`)
-      .then(() => setProducts(products.filter(p => p._id !== id)))
-      .catch(err => {
-        console.error(err);
-        // si es ficticio, simplemente lo quitamos
-        setProducts(products.filter(p => p._id !== id));
-      });
-  };
+  useEffect(() => { load(); }, []);
 
   return (
-    <div>
-      <h2 className="text-2xl font-semibold mb-4">Productos</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map(p => (
-          <div
-            key={p._id}
-            className="bg-white border rounded-lg p-4 shadow flex flex-col"
+    <div className="space-y-4">
+      <h1 className="text-2xl font-bold text-slate-800">Gestión de Productos</h1>
+
+      <div className="bg-white rounded-2xl shadow border">
+        <div className="flex items-center justify-end p-4">
+          <button
+            onClick={() => navigate('/admin/products/new')}
+            className="h-10 px-4 rounded-lg bg-sky-500 text-white hover:bg-sky-600 transition"
           >
-            <h3 className="text-xl font-semibold mb-2">{p.name}</h3>
-            <p className="text-gray-800 font-bold mb-4">
-              S/ {p.price.toFixed(2)}
-            </p>
-            <div className="mt-auto space-x-2">
-              <button
-                onClick={() => handleView(p)}
-                className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                Ver info
-              </button>
-              <button
-                onClick={() => handleDelete(p._id)}
-                className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Borrar
-              </button>
-            </div>
+            Agregar Producto
+          </button>
+        </div>
+
+        <div className="px-4 pb-4">
+          <div className="rounded-2xl overflow-hidden border">
+            {loading ? (
+              <div className="p-4 text-slate-600">Cargando…</div>
+            ) : rows.length === 0 ? (
+              <div className="p-4 text-slate-600">Sin productos.</div>
+            ) : (
+              <table className="w-full text-sm">
+                {/* encabezado con color fijo (no depende de Tailwind purge) */}
+                <thead className="bg-[#0b3359] text-white">
+                  <tr>
+                    <th className="px-4 py-2">ID</th>
+                    <th className="px-4 py-2">Producto</th>
+                    <th className="px-4 py-2">Precio Unitario</th>
+                    <th className="px-4 py-2">Stock</th>
+                    <th className="px-4 py-2">Acciones</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {rows.map((p, i) => (
+                    <tr key={p._id} className={i % 2 ? 'bg-gray-50' : ''}>
+                      <td className="p-3 font-mono">{shortId(p._id)}</td>
+                      <td className="p-3">{p.name}</td>
+                      <td className="p-3">{money(p.price)}</td>
+                      <td className="p-3">{p.countInStock ?? p.stock ?? 0}</td>
+                      <td className="p-3">
+                        <button
+                          onClick={() => navigate(`/admin/products/${p._id}`)}
+                          className="px-3 py-1 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition"
+                        >
+                          Editar
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );
