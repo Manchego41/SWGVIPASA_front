@@ -13,10 +13,12 @@ import {
   FiGrid,
   FiInfo,
   FiAward,
+  FiStar,
 } from "react-icons/fi";
 
 const PAGE_SIZE = 12;
 const SORTS = [
+  { value: "popular", label: "Más populares" }, // ✅ NUEVO
   { value: "name_asc", label: "Nombre (A-Z)" },
   { value: "name_desc", label: "Nombre (Z-A)" },
   { value: "price_asc", label: "Precio: Menor a Mayor" },
@@ -56,7 +58,12 @@ export default function Catalogo() {
   const [page, setPage] = useState(1);
 
   // UI: feedback al agregar
-  const [adding, setAdding] = useState(null); // productId que se está agregando
+  const [adding, setAdding] = useState(null);
+
+  // ✅ NUEVOS ESTADOS PARA LIKES
+  const [productLikes, setProductLikes] = useState({}); // {productId: likeCount}
+  const [userLikes, setUserLikes] = useState(new Set()); // IDs de productos que el usuario likeó
+  const [liking, setLiking] = useState(null); // productId que se está likeando
 
   // Cargar productos
   useEffect(() => {
@@ -68,7 +75,23 @@ export default function Catalogo() {
       .then((res) => {
         if (!mounted) return;
         const productosData = res.data?.products ?? res.data;
-        setAll(Array.isArray(productosData) ? productosData : []);
+        const productsArray = Array.isArray(productosData) ? productosData : [];
+        setAll(productsArray);
+
+        // ✅ INICIALIZAR LIKES CON DATOS DE PRUEBA
+        const mockLikes = {};
+        const mockUserLikes = new Set();
+        
+        productsArray.forEach(product => {
+          // Datos mock para testing
+          mockLikes[product._id] = Math.floor(Math.random() * 25); // 0-24 likes
+          if (Math.random() < 0.3) {
+            mockUserLikes.add(product._id); // 30% prob de que usuario likee
+          }
+        });
+        
+        setProductLikes(mockLikes);
+        setUserLikes(mockUserLikes);
       })
       .catch((err) => {
         if (!mounted) return;
@@ -83,6 +106,45 @@ export default function Catalogo() {
       mounted = false;
     };
   }, []);
+
+  // ✅ NUEVA FUNCIÓN PARA MANEJAR LIKES
+  const handleStarClick = async (productId) => {
+    const user = getUser();
+    if (!user?.token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setLiking(productId);
+      
+      // Optimistic update - actualizar UI inmediatamente
+      const newLikes = { ...productLikes };
+      const userLikesSet = new Set(userLikes);
+      
+      if (userLikesSet.has(productId)) {
+        // Quitar like
+        userLikesSet.delete(productId);
+        newLikes[productId] = (newLikes[productId] || 1) - 1;
+      } else {
+        // Agregar like
+        userLikesSet.add(productId);
+        newLikes[productId] = (newLikes[productId] || 0) + 1;
+      }
+      
+      setProductLikes(newLikes);
+      setUserLikes(userLikesSet);
+
+      // 📍 NOTA: Por ahora es solo frontend, luego conectaremos el backend
+      // await API.post(`/products/${productId}/like`);
+      
+    } catch (error) {
+      console.error("Error al dar like:", error);
+      // En una implementación real, aquí revertiríamos el optimistic update
+    } finally {
+      setLiking(null);
+    }
+  };
 
   // Filtrado + ordenamiento
   const processed = useMemo(() => {
@@ -114,6 +176,12 @@ export default function Catalogo() {
 
     // Orden
     list.sort((a, b) => {
+      if (sort === "popular") {
+        // ✅ NUEVO: Ordenar por likes (más populares primero)
+        const likesA = productLikes[a._id] || 0;
+        const likesB = productLikes[b._id] || 0;
+        return likesB - likesA;
+      }
       if (sort === "name_asc") return (a.name || "").localeCompare(b.name || "");
       if (sort === "name_desc") return (b.name || "").localeCompare(a.name || "");
       if (sort === "price_asc") return Number(a.price) - Number(b.price);
@@ -122,7 +190,7 @@ export default function Catalogo() {
     });
 
     return list;
-  }, [all, search, min, max, availability, sort]);
+  }, [all, search, min, max, availability, sort, productLikes]); // ✅ Agregar productLikes a dependencias
 
   // Paginación
   const pages = Math.max(1, Math.ceil(processed.length / PAGE_SIZE));
@@ -144,7 +212,7 @@ export default function Catalogo() {
     setSort("name_asc");
   };
 
-  // Agregar al carrito (vía API actual que ya usas)
+  // Agregar al carrito (existente)
   const addToCart = async (productId) => {
     const user = getUser();
     if (!user?.token) return navigate("/login");
@@ -308,7 +376,11 @@ export default function Catalogo() {
           {processed.length > 0 && (
             <div className="flex items-center gap-2 text-sm text-gray-500 bg-blue-50 px-3 py-1 rounded-full">
               <FiInfo className="h-4 w-4" />
-              <span>Catálogo de visualización</span>
+              <span>
+                {sort === "popular" 
+                  ? "Ordenado por: Más populares ★" 
+                  : "Catálogo de visualización"}
+              </span>
             </div>
           )}
         </div>
@@ -386,6 +458,9 @@ export default function Catalogo() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {paged.map((prod) => {
                 const inStock = (prod.countInStock ?? 0) > 0;
+                const isLiked = userLikes.has(prod._id);
+                const likeCount = productLikes[prod._id] || 0;
+                
                 return (
                   <div
                     key={prod._id}
@@ -418,9 +493,32 @@ export default function Catalogo() {
 
                     {/* Contenido */}
                     <div className="p-5 flex-1 flex flex-col">
-                      <h3 className="font-semibold text-lg text-gray-900 mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200">
-                        {prod.name}
-                      </h3>
+                      {/* ✅ NUEVO: Encabezado con estrella */}
+                      <div className="flex items-start justify-between mb-2">
+                        <h3 className="font-semibold text-lg text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors duration-200 flex-1 mr-2">
+                          {prod.name}
+                        </h3>
+                        
+                        {/* Componente de estrella */}
+                        <button 
+                          onClick={() => handleStarClick(prod._id)}
+                          disabled={liking === prod._id}
+                          className={`flex items-center gap-1 transition-all duration-200 ${
+                            isLiked 
+                              ? "text-yellow-500 hover:text-yellow-600" 
+                              : "text-gray-400 hover:text-yellow-500"
+                          } ${liking === prod._id ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          {isLiked ? (
+                            <FiStar className="h-5 w-5 fill-current" />
+                          ) : (
+                            <FiStar className="h-5 w-5" />
+                          )}
+                          <span className="text-sm text-gray-600 min-w-[20px] text-center">
+                            {likeCount}
+                          </span>
+                        </button>
+                      </div>
 
                       <p className="text-gray-600 text-sm mb-3 line-clamp-3">
                         {prod.description || "Sin descripción disponible"}
