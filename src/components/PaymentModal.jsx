@@ -1,6 +1,7 @@
 // src/components/PaymentModal.jsx
 import React, { useEffect, useState, useMemo } from "react";
-import { FiX, FiCreditCard, FiSmartphone, FiDollarSign } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
+import { startMercadoPagoCheckout } from "../utils/payments";
 
 const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
 
@@ -16,7 +17,7 @@ export default function PaymentModal({
   onClose,
   items = [],
   subtotal = 0,
-  onConfirm,
+  onConfirm, // por si necesitas enganchar lógica extra en el padre
 }) {
   const [method, setMethod] = useState("");
 
@@ -47,7 +48,23 @@ export default function PaymentModal({
 
   const handleConfirm = async () => {
     if (!method) return;
-    await onConfirm?.(method);
+
+    try {
+      if (method === "visa") {
+        // Ir directo a Mercado Pago (sandbox) con los items del carrito:
+        await startMercadoPagoCheckout(items);
+        return; // la página redirige, no sigue
+      }
+
+      // (Opcional) avisa que aún no está implementado
+      alert("Este método se implementará luego. Prueba con Visa por ahora.");
+
+      // Si tu padre quiere enterarse del método seleccionado:
+      await onConfirm?.(method);
+    } catch (e) {
+      console.error(e);
+      alert(e.message || "No se pudo iniciar el pago.");
+    }
   };
 
   return (
