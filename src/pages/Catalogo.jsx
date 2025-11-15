@@ -13,7 +13,9 @@ import {
   FiGrid,
   FiInfo,
   FiAward,
+  FiStar,
 } from "react-icons/fi";
+import { AiFillStar } from "react-icons/ai";
 
 const PAGE_SIZE = 12;
 const SORTS = [
@@ -38,6 +40,9 @@ const getUser = () => {
   return u;
 };
 
+// Key por-usuario para no mezclar favoritos
+const favKeyFor = (user) => `favProducts:${user?._id || user?.id || "anon"}`;
+
 export default function Catalogo() {
   const navigate = useNavigate();
 
@@ -52,11 +57,34 @@ export default function Catalogo() {
   const [min, setMin] = useState("");
   const [max, setMax] = useState("");
   const [availability, setAvailability] = useState("");
+  const [onlyFavs, setOnlyFavs] = useState(false);
   const [sort, setSort] = useState("name_asc");
   const [page, setPage] = useState(1);
 
   // UI: feedback al agregar
   const [adding, setAdding] = useState(null); // productId que se está agregando
+
+  // Favoritos
+  const user = getUser();
+  const favKey = favKeyFor(user);
+  const [favs, setFavs] = useState(() => {
+    const raw = localStorage.getItem(favKey);
+    const arr = safeParse(raw) || [];
+    return new Set(arr);
+  });
+  // persistir cuando cambian
+  useEffect(() => {
+    localStorage.setItem(favKey, JSON.stringify([...favs]));
+  }, [favs, favKey]);
+
+  const toggleFav = (id) => {
+    setFavs((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   // Cargar productos
   useEffect(() => {
@@ -84,7 +112,7 @@ export default function Catalogo() {
     };
   }, []);
 
-  // Filtrado + ordenamiento
+  // Filtrado + ordenamiento (con favoritos primero)
   const processed = useMemo(() => {
     let list = [...all];
 
@@ -112,17 +140,29 @@ export default function Catalogo() {
     if (availability === "out")
       list = list.filter((p) => (p.countInStock ?? 0) <= 0);
 
-    // Orden
-    list.sort((a, b) => {
+    // Solo favoritos
+    if (onlyFavs) {
+      list = list.filter((p) => favs.has(p._id));
+    }
+
+    // Orden: favoritos primero, luego criterio elegido
+    const cmpBySort = (a, b) => {
       if (sort === "name_asc") return (a.name || "").localeCompare(b.name || "");
-      if (sort === "name_desc") return (b.name || "").localeCompare(a.name || "");
+      if (sort === "name_desc")
+        return (b.name || "").localeCompare(a.name || "");
       if (sort === "price_asc") return Number(a.price) - Number(b.price);
       if (sort === "price_desc") return Number(b.price) - Number(a.price);
       return 0;
+    };
+
+    list.sort((a, b) => {
+      const favDelta = (favs.has(b._id) ? 1 : 0) - (favs.has(a._id) ? 1 : 0);
+      if (favDelta !== 0) return favDelta; // favoritos arriba
+      return cmpBySort(a, b);
     });
 
     return list;
-  }, [all, search, min, max, availability, sort]);
+  }, [all, search, min, max, availability, onlyFavs, sort, favs]);
 
   // Paginación
   const pages = Math.max(1, Math.ceil(processed.length / PAGE_SIZE));
@@ -134,13 +174,14 @@ export default function Catalogo() {
   // Reiniciar a página 1 cuando cambian filtros
   useEffect(() => {
     setPage(1);
-  }, [search, min, max, availability, sort]);
+  }, [search, min, max, availability, onlyFavs, sort]);
 
   const resetFilters = () => {
     setSearch("");
     setMin("");
     setMax("");
     setAvailability("");
+    setOnlyFavs(false);
     setSort("name_asc");
   };
 
@@ -221,7 +262,7 @@ export default function Catalogo() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* Rango de precios */}
               <div>
                 <h3 className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-3">
@@ -293,6 +334,23 @@ export default function Catalogo() {
                   ))}
                 </select>
               </div>
+
+              {/* Favoritos */}
+              <div>
+                <h3 className="flex items-center gap-2 text-sm font-medium text-gray-900 mb-3">
+                  <FiStar className="h-4 w-4 text-yellow-500" />
+                  Favoritos
+                </h3>
+                <label className="inline-flex items-center gap-2 text-sm text-gray-700 select-none">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    checked={onlyFavs}
+                    onChange={(e) => setOnlyFavs(e.target.checked)}
+                  />
+                  Mostrar solo favoritos
+                </label>
+              </div>
             </div>
           </div>
         )}
@@ -313,7 +371,7 @@ export default function Catalogo() {
           )}
         </div>
 
-        {/* Estado de carga (skeleton) */}
+        {/* Estado de carga */}
         {loading && (
           <div
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
@@ -386,6 +444,7 @@ export default function Catalogo() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {paged.map((prod) => {
                 const inStock = (prod.countInStock ?? 0) > 0;
+                const isFav = favs.has(prod._id);
                 return (
                   <div
                     key={prod._id}
@@ -403,6 +462,8 @@ export default function Catalogo() {
                             "https://via.placeholder.com/300x200?text=Imagen+no+disponible";
                         }}
                       />
+
+                      {/* Badge disponibilidad */}
                       <div className="absolute top-3 right-3">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -414,6 +475,22 @@ export default function Catalogo() {
                           {inStock ? "Disponible" : "Agotado"}
                         </span>
                       </div>
+
+                      {/* Botón Favorito */}
+                      <button
+                        onClick={() => toggleFav(prod._id)}
+                        title={isFav ? "Quitar de favoritos" : "Agregar a favoritos"}
+                        className={`absolute top-3 left-3 inline-flex items-center justify-center w-9 h-9 rounded-full border backdrop-blur-sm
+                          ${isFav ? "bg-yellow-100 border-yellow-300" : "bg-white/80 border-gray-300 hover:bg-white"}
+                          shadow-sm transition`}
+                        aria-label="favorito"
+                      >
+                        {isFav ? (
+                          <AiFillStar className="text-yellow-500 w-5 h-5" />
+                        ) : (
+                          <FiStar className="text-gray-600 w-5 h-5" />
+                        )}
+                      </button>
                     </div>
 
                     {/* Contenido */}
