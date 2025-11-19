@@ -24,18 +24,17 @@ import UserEditor from "./pages/admin/UserEditor";
 import ProductsList from "./pages/admin/ProductsList";
 import ProductEditor from "./pages/admin/ProductEditor";
 import StockManager from "./pages/admin/StockManager";
+import AdminReturns from "./pages/admin/AdminReturns"; // ← NUEVO
 
 import { CartProvider } from "./context/CartContext";
 import MiniCartDrawer from "./components/MiniCartDrawer";
 import Catalogo from "./pages/Catalogo";
-
-// 👇 Asegúrate de tener este archivo con el código que te pasé
 import SupportWidget from "./components/SupportWidget";
 
 function AppInner() {
   const location = useLocation();
 
-  // Visible en todas las páginas públicas, oculto en /admin y /login
+  // Visible en páginas públicas; oculto en /admin y /login
   const hideOn = [/^\/admin\b/, /^\/login\b/];
   const showSupport = !hideOn.some((rx) => rx.test(location.pathname));
 
@@ -78,17 +77,12 @@ function AppInner() {
             <Route path="products/:id" element={<ProductEditor />} />
             <Route path="products/new" element={<ProductEditor />} />
             <Route path="stock" element={<StockManager />} />
+            <Route path="returns" element={<AdminReturns />} /> {/* ← NUEVO */}
           </Route>
         </Routes>
       </div>
 
-      {/* 👇 Chat visible en todas las páginas públicas */}
       {showSupport && <SupportWidget />}
-
-      {/*
-        Si lo quieres visible en TODAS las páginas (incluido /admin y /login),
-        reemplaza la línea anterior por:  <SupportWidget />
-      */}
     </>
   );
 }
