@@ -24,7 +24,7 @@ import UserEditor from "./pages/admin/UserEditor";
 import ProductsList from "./pages/admin/ProductsList";
 import ProductEditor from "./pages/admin/ProductEditor";
 import StockManager from "./pages/admin/StockManager";
-import AdminReturns from "./pages/admin/AdminReturns"; // ← NUEVO
+import AdminReturns from "./pages/admin/AdminReturns";
 
 import { CartProvider } from "./context/CartContext";
 import MiniCartDrawer from "./components/MiniCartDrawer";
@@ -77,7 +77,7 @@ function AppInner() {
             <Route path="products/:id" element={<ProductEditor />} />
             <Route path="products/new" element={<ProductEditor />} />
             <Route path="stock" element={<StockManager />} />
-            <Route path="returns" element={<AdminReturns />} /> {/* ← NUEVO */}
+            <Route path="returns" element={<AdminReturns />} />
           </Route>
         </Routes>
       </div>
