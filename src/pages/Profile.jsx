@@ -1,7 +1,8 @@
 // src/pages/Profile.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import API from '../utils/api';
 import PurchaseDetailModal from '../components/PurchaseDetailModal';
+import ReturnRequestModal from '../components/ReturnRequestModal';
 
 const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
 
@@ -27,32 +28,50 @@ export default function Profile() {
   const [showDetail, setShowDetail] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState(null);
 
+  // Modal de devolución
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedForReturn, setSelectedForReturn] = useState(null);
+
   // Catálogo para imágenes (Mongo -> imageUrl)
   const [productsById, setProductsById] = useState({});
   const [productsByName, setProductsByName] = useState({});
 
+  // Abre / cierra detalle
   const openDetail  = (p) => { setSelectedPurchase(p); setShowDetail(true); };
   const closeDetail = () => { setShowDetail(false); setSelectedPurchase(null); };
 
+  // Abre / cierra modal de devolución
+  const openReturn = (p) => {
+    setSelectedForReturn(p);
+    setShowReturnModal(true);
+  };
+  const closeReturn = () => {
+    setShowReturnModal(false);
+    setSelectedForReturn(null);
+  };
+
   // Cargar compras desde tu API: /api/purchases/mine
-  useEffect(() => {
-    async function fetchPurchases() {
-      try {
-        setLoading(true);
-        const { data } = await API.get('/purchases/mine', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setPurchases(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Error al cargar compras', err);
-        const msg = err?.response?.data?.message || 'No se pudo cargar el historial';
-        setError(msg);
-      } finally {
-        setLoading(false);
-      }
+  const fetchPurchases = useCallback(async () => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      setError('');
+      const { data } = await API.get('/purchases/mine', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPurchases(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error al cargar compras', err);
+      const msg = err?.response?.data?.message || 'No se pudo cargar el historial';
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
-    if (token) fetchPurchases();
   }, [token]);
+
+  useEffect(() => {
+    if (token) fetchPurchases();
+  }, [token, fetchPurchases]);
 
   // Cargar catálogo para tener imageUrl (ajusta el endpoint si tu back usa otro)
   useEffect(() => {
@@ -202,7 +221,10 @@ export default function Profile() {
                       >
                         Ver compra
                       </button>
-                      <button className="w-full bg-blue-100 text-blue-600 py-2 rounded hover:bg-blue-200">
+                      <button
+                        onClick={() => openReturn(p)}
+                        className="w-full bg-blue-100 text-blue-600 py-2 rounded hover:bg-blue-200"
+                      >
                         Hacer Devolución
                       </button>
                     </div>
@@ -222,6 +244,22 @@ export default function Profile() {
         productsById={productsById}
         productsByName={productsByName}
         currentUserName={currentUserName}
+      />
+
+      {/* Modal para solicitar devolución */}
+      <ReturnRequestModal
+        open={showReturnModal}
+        onClose={(res) => {
+          // close modal y si la creación fue exitosa, refrescar compras
+          closeReturn();
+          if (res?.ok) {
+            // refetch compras para reflejar la nueva devolución
+            fetchPurchases();
+            // opcional: mostrar mensaje / toast (aquí solo console)
+            console.log('Devolución solicitada con éxito');
+          }
+        }}
+        purchase={selectedForReturn}
       />
     </div>
   );
