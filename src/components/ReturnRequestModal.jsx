@@ -5,18 +5,28 @@ import { FiX } from "react-icons/fi";
 
 const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
 
-// Intenta sacar un id y nombre de producto de distintos formatos de purchase.items
+// Normaliza distintos formatos de item de purchase
 function normalizeItem(it) {
+  // purchase item _id (subdocument id dentro de la compra)
+  const purchaseItemId = it._id || it.itemId || it.purchaseItemId || null;
+
+  // product id si el item referencia product
   const productId =
-    it.productId || it.product || it.product?._id || it._id || null;
+    it.productId ||
+    it.product ||
+    (it.product && it.product._id) ||
+    null;
 
   const productName =
-    it.name || it.product?.name || it.title || "Producto";
+    it.name ||
+    (it.product && it.product.name) ||
+    it.title ||
+    "Producto";
 
-  const unitPrice = Number(it.price ?? it.unitPrice ?? it.product?.price ?? 0);
+  const unitPrice = Number(it.price ?? it.unitPrice ?? (it.product && it.product.price) ?? 0);
   const maxQty = Number(it.quantity ?? it.qty ?? it.count ?? 0);
 
-  return { productId, productName, unitPrice, maxQty };
+  return { purchaseItemId, productId, productName, unitPrice, maxQty };
 }
 
 export default function ReturnRequestModal({ open, onClose, purchase }) {
@@ -24,12 +34,12 @@ export default function ReturnRequestModal({ open, onClose, purchase }) {
   const token = stored?.token;
   const auth = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
 
-  const [items, setItems] = useState([]); // [{productId, productName, unitPrice, maxQty, selected, qty}]
+  const [items, setItems] = useState([]); // { purchaseItemId, productId, productName, unitPrice, maxQty, selected, qty }
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  // Inicializa el estado del modal cada vez que cambie la compra o se abra
+  // Inicializa estado cuando cambia purchase/open
   useEffect(() => {
     if (!open || !purchase) return;
     const arr = (purchase.items || []).map((it) => {
@@ -44,7 +54,7 @@ export default function ReturnRequestModal({ open, onClose, purchase }) {
   const estimated = useMemo(
     () =>
       items.reduce(
-        (acc, it) => (it.selected ? acc + it.qty * it.unitPrice : acc),
+        (acc, it) => (it.selected ? acc + Number(it.qty || 0) * Number(it.unitPrice || 0) : acc),
         0
       ),
     [items]
@@ -57,7 +67,6 @@ export default function ReturnRequestModal({ open, onClose, purchase }) {
           ? {
               ...it,
               selected: !it.selected,
-              // si lo activan y qty es 0, por UX lo ponemos en 1
               qty: !it.selected && it.qty === 0 ? 1 : it.qty,
             }
           : it
@@ -78,13 +87,15 @@ export default function ReturnRequestModal({ open, onClose, purchase }) {
 
   const submit = async () => {
     setError("");
+    // Enviamos líneas con purchaseItemId (si existe), productId y productName por compatibilidad
     const chosen = items
-      .filter((it) => it.selected && it.qty > 0)
+      .filter((it) => it.selected && Number(it.qty) > 0)
       .map((it) => ({
-        productId: it.productId,
-        productName: it.productName,
-        quantity: it.qty,
-        unitPrice: it.unitPrice,
+        purchaseItemId: it.purchaseItemId || null,
+        productId: it.productId || null,
+        productName: it.productName || '',
+        quantity: Number(it.qty || 0),
+        unitPrice: Number(it.unitPrice || 0),
       }));
 
     if (chosen.length === 0) {
@@ -97,10 +108,14 @@ export default function ReturnRequestModal({ open, onClose, purchase }) {
     }
 
     const payload = {
-      purchaseId: purchase?._id,
+      purchaseId: purchase?._id || purchase?.id,
       items: chosen,
       reason: reason.trim(),
     };
+
+    // Debug rapido: ver estructura en consola
+    // Retirar o comentar cuando ya verifiques que funciona.
+    console.log("RETURN payload:", JSON.stringify(payload, null, 2));
 
     try {
       setSubmitting(true);
@@ -108,6 +123,7 @@ export default function ReturnRequestModal({ open, onClose, purchase }) {
       // cierra y notifica éxito al padre
       onClose?.({ ok: true });
     } catch (e) {
+      console.error("Return submit error:", e?.response?.data || e);
       setError(
         e?.response?.data?.message ||
           "No se pudo registrar la solicitud de devolución."
@@ -141,7 +157,7 @@ export default function ReturnRequestModal({ open, onClose, purchase }) {
           {/* Items */}
           {(items || []).map((it, idx) => (
             <div
-              key={`${it.productId || it.productName}-${idx}`}
+              key={`${it.purchaseItemId || it.productId || it.productName}-${idx}`}
               className="border rounded-xl px-4 py-3"
             >
               <div className="flex items-start gap-3">

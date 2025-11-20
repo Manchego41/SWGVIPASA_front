@@ -23,15 +23,23 @@ export default function AdminReturns() {
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   const setStatus = async (id, status) => {
-    await API.patch(`/returns/${id}/status`, { status }, auth);
-    load();
+    try {
+      await API.patch(`/returns/${id}/status`, { status }, auth);
+      load();
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Error actualizando estado');
+    }
   };
 
   const sendMessage = async (id) => {
     if (!msg.trim()) return;
-    await API.post(`/returns/${id}/message`, { message: msg.trim() }, auth);
-    setMsg('');
-    alert('Mensaje enviado');
+    try {
+      await API.post(`/returns/${id}/message`, { message: msg.trim() }, auth);
+      setMsg('');
+      alert('Mensaje enviado');
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Error enviando mensaje');
+    }
   };
 
   if (loading) return <div className="p-4">Cargando…</div>;
@@ -47,11 +55,20 @@ export default function AdminReturns() {
             Cliente: {r.user?.name} ({r.user?.email}) • Estimado: S/ {Number(r.total||0).toFixed(2)} • Estado: <b>{r.status}</b>
           </div>
 
-          <ul className="mt-2 list-disc ml-5 text-sm">
-            {(r.items || []).map((it, i) => (
-              <li key={i}>{it.productName} — {it.quantity} x S/ {Number(it.unitPrice).toFixed(2)}</li>
-            ))}
-          </ul>
+          <div className="mt-2">
+            {(r.items || []).map((it, i) => {
+              const prodName = it.product?.name || it.productName || 'Producto';
+              const price = Number(it.unitPrice ?? it.product?.price ?? 0);
+              return (
+                <div key={i} className="flex justify-between items-center text-sm py-1 border-b last:border-b-0">
+                  <div>{prodName}</div>
+                  <div className="text-right">
+                    {it.quantity} x S/ {price.toFixed(2)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
             {['processing','approved','rejected','completed','canceled'].map(s => (

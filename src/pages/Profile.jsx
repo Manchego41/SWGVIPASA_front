@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import API from '../utils/api';
 import PurchaseDetailModal from '../components/PurchaseDetailModal';
 import ReturnRequestModal from '../components/ReturnRequestModal';
+import MisDevoluciones from "./Profile/MisDevoluciones";
 
 const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
 
@@ -148,8 +149,8 @@ export default function Profile() {
         )}
 
         {activeTab === 'devoluciones' && (
-          <div className="bg-white rounded-lg p-4 shadow text-gray-600">
-            (Aquí irá el flujo de devoluciones)
+          <div className="bg-white rounded-lg p-4 shadow">
+            <MisDevoluciones />
           </div>
         )}
 
