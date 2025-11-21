@@ -30,6 +30,12 @@ import { CartProvider } from "./context/CartContext";
 import MiniCartDrawer from "./components/MiniCartDrawer";
 import Catalogo from "./pages/Catalogo";
 import SupportWidget from "./components/SupportWidget";
+import PagoPrueba from "./pages/PagoPrueba";
+import PagoExitoso from "./pages/PagoExitoso";
+import PagoFallido from "./pages/PagoFallido";
+import PagoPendiente from "./pages/PagoPendiente";
+
+
 
 function AppInner() {
   const location = useLocation();
@@ -61,7 +67,11 @@ function AppInner() {
 
           <Route path="/profile" element={<Profile />} />
           <Route path="/acceso-denegado" element={<AccesoDenegado />} />
-
+          <Route path="/pago-prueba" element={<PagoPrueba />} /> 
+          <Route path="/pago-exitoso" element={<PagoExitoso />} />
+          <Route path="/pago-fallido" element={<PagoFallido />} />
+          <Route path="/pago-pendiente" element={<PagoPendiente />} />
+ 
           <Route
             path="/admin/*"
             element={

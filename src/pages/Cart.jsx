@@ -4,11 +4,10 @@ import { Navigate } from "react-router-dom";
 import API from "../utils/api";
 import { useCart } from "../context/CartContext";
 import { FiMinus, FiPlus, FiTrash2 } from "react-icons/fi";
-import PaymentModal from "../components/PaymentModal";
 
 const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
 
-// Helpers para leer el shape de tu backend
+// Helpers del backend
 const getCartItemId = (it) => it?._id;
 const getProduct = (it) => it?.product || {};
 const getPrice = (it) => Number(getProduct(it)?.price ?? it?.price ?? 0);
@@ -18,38 +17,56 @@ const getImage = (it) =>
   getProduct(it)?.imageUrl || it?.imageUrl || it?.image || "";
 
 export default function Cart() {
-  // Redirección si no hay token
   const stored = JSON.parse(localStorage.getItem("user") || "null");
   const token = stored?.token;
   if (!token) return <Navigate to="/login" replace />;
 
-  const { items, changeQty, removeItem, subtotal, fetchCart } = useCart();
+  const { items, changeQty, removeItem, subtotal } = useCart();
 
-  const [showModal, setShowModal] = useState(false);
   const [paying, setPaying] = useState(false);
 
   const total = useMemo(() => subtotal, [subtotal]);
 
-  const handleConfirmPayment = async (method) => {
-    try {
-      setPaying(true);
-      await API.post("/cart/checkout-local", { method });
-      await fetchCart();
-      setShowModal(false);
-      alert(`Compra registrada correctamente. Método: ${method.toUpperCase()}`);
-    } catch (e) {
-      console.error(e);
-      alert(e?.response?.data?.message || "No se pudo registrar la compra. Revisa la consola.");
-    } finally {
-      setPaying(false);
-    }
-  };
+  // --- MERCADO PAGO DIRECTO ---
+ const handleMercadoPago = async () => {
+  try {
+    setPaying(true);
 
-  // Ahora sí: delta +1 / -1 y pasando el item completo
+    const payload = {
+      items: items.map((it) => ({
+        title: getName(it),
+        quantity: getQty(it),
+        unit_price: getPrice(it),
+      }))
+    };
+
+    const response = await fetch("http://localhost:5000/api/payments/create-preference", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await response.json();
+
+    if (data.init_point) {
+      window.location.href = data.init_point; // redirige a Mercado Pago
+    } else {
+      alert("Error al generar enlace de pago");
+    }
+  } catch (error) {
+    console.error(error);
+    alert("No se pudo procesar el pago");
+  } finally {
+    setPaying(false);
+  }
+};
+
+
   const handleDec = (it) => changeQty(it, -1);
   const handleInc = (it) => changeQty(it, +1);
 
-  // Para borrar, envía el _id del ítem del carrito
   const handleRemove = (it) => {
     const cartItemId = getCartItemId(it);
     if (cartItemId) removeItem(cartItemId);
@@ -60,7 +77,8 @@ export default function Cart() {
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Mi Carrito</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lista de productos */}
+        
+        {/* LISTA DE PRODUCTOS */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow border">
             <div className="grid grid-cols-12 px-6 py-4 text-sm text-gray-500">
@@ -138,7 +156,7 @@ export default function Cart() {
           </div>
         </div>
 
-        {/* Resumen de compra */}
+        {/* RESUMEN */}
         <div>
           <div className="bg-white rounded-xl shadow border p-6">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Resumen de compra</h3>
@@ -147,14 +165,16 @@ export default function Cart() {
               <span>Subtotal</span>
               <span>{money(total)}</span>
             </div>
+
             <div className="flex items-center justify-between text-base font-bold text-gray-900 mb-4">
               <span>Total</span>
               <span className="text-indigo-600">{money(total)}</span>
             </div>
 
+            {/* BOTÓN QUE REDIRIGE A MERCADO PAGO */}
             <button
               disabled={!items?.length || paying}
-              onClick={() => setShowModal(true)}
+              onClick={handleMercadoPago}
               className={[
                 "w-full h-11 rounded-xl font-semibold text-white transition shadow-sm",
                 items?.length && !paying ? "bg-green-600 hover:bg-green-700" : "bg-gray-300 cursor-not-allowed"
@@ -169,15 +189,6 @@ export default function Cart() {
           </div>
         </div>
       </div>
-
-      {/* Modal de pago */}
-      <PaymentModal
-        open={showModal}
-        onClose={() => setShowModal(false)}
-        items={items}
-        subtotal={total}
-        onConfirm={handleConfirmPayment}
-      />
     </div>
   );
 }
