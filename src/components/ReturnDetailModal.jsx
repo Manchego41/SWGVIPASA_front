@@ -1,21 +1,41 @@
 // src/components/ReturnDetailModal.jsx
 import React from "react";
 import { FiX } from "react-icons/fi";
+import API from "../utils/api";
 
 const money = (n) => `S/ ${Number(n || 0).toFixed(2)}`;
 
 export default function ReturnDetailModal({ open, onClose, rma }) {
   if (!open || !rma) return null;
 
+  const stored = JSON.parse(localStorage.getItem("user") || "null");
+  const token = stored?.token;
+  const auth = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+
+  const handleCancel = async () => {
+    if (!window.confirm('¿Cancelar esta solicitud de devolución?')) return;
+    try {
+      await API.patch(`/returns/${rma._id}/cancel`, {}, auth);
+      alert('Devolución cancelada.');
+      // cerrar y permitir al padre recargar (si implementa onClose para reload)
+      onClose?.({ canceled: true });
+    } catch (e) {
+      alert(e?.response?.data?.message || 'No se pudo cancelar la devolución.');
+    }
+  };
+
+  const borderClass = rma.status === 'approved' ? 'border-green-300' :
+                      rma.status === 'rejected' ? 'border-red-300' : 'border-gray-200';
+
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl">
+      <div className={`w-full max-w-2xl bg-white rounded-2xl shadow-xl border ${borderClass}`}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b">
           <h3 className="text-lg font-semibold text-slate-800">
             Devolución {rma.code || rma._id}
           </h3>
-          <button onClick={onClose} className="p-2 rounded hover:bg-slate-100">
+          <button onClick={() => onClose?.()} className="p-2 rounded hover:bg-slate-100">
             <FiX className="w-5 h-5" />
           </button>
         </div>
@@ -56,8 +76,19 @@ export default function ReturnDetailModal({ open, onClose, rma }) {
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t flex justify-end gap-3">
-          <button className="px-4 py-2 rounded-lg border" onClick={onClose}>Cerrar</button>
+        <div className="px-5 py-4 border-t flex justify-between gap-3">
+          <div>
+            {rma.status === 'processing' && (
+              <button className="px-4 py-2 rounded-lg bg-red-500 text-white" onClick={handleCancel}>
+                Cancelar Devolución
+              </button>
+            )}
+          </div>
+          <div>
+            <button className="px-4 py-2 rounded-lg border" onClick={() => onClose?.()}>
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     </div>
