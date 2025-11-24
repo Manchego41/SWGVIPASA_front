@@ -2,7 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Scroll suave para anclas */
-html {
-  scroll-behavior: smooth;
+@layer base {
+  body {
+    @apply bg-slate-100 text-slate-800;
+  }
 }

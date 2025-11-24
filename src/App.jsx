@@ -12,7 +12,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./layouts/AdminLayout";
 
 import Home from "./pages/Home";
-import Contacto from "./pages/Contacto";
+// Contacto eliminado: ahora el contacto está dentro de Home
 import Login from "./pages/Login";
 import Cart from "./pages/Cart";
 import Profile from "./pages/Profile";
@@ -47,7 +47,7 @@ function AppInner() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/catalogo" element={<Catalogo />} />
-          <Route path="/contacto" element={<Contacto />} />
+          {/* /contacto eliminado: contenido integrado en Home */}
           <Route path="/login" element={<Login />} />
 
           <Route

@@ -15,7 +15,9 @@ export default function AdminLayout() {
   const active= 'flex items-center gap-3 px-4 py-3 rounded-xl bg-cyan-600 text-white';
 
   return (
+    // contenedor principal: full height y fondo gris (igual que antes)
     <div className="min-h-screen flex bg-slate-100">
+      {/* Sidebar */}
       <aside className="w-64 bg-[#0b1736] text-white p-4 space-y-4">
         <div className="flex items-center gap-3 p-2">
           <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
@@ -52,8 +54,13 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <main className="flex-1 p-6">
-        <Outlet />
+      {/* MAIN: lo dejamos sin padding para que el contenido esté desde el top; 
+          dentro añadimos un wrapper con el padding previo para conservar el espaciado del contenido */}
+      <main className="flex-1">
+        {/* wrapper interno con el paddig que antes estaba en main */}
+        <div className="pt-6 px-6">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

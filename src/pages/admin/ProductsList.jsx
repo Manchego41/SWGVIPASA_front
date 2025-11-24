@@ -48,37 +48,42 @@ export default function ProductsList() {
             ) : rows.length === 0 ? (
               <div className="p-4 text-slate-600">Sin productos.</div>
             ) : (
-              <table className="w-full text-sm">
-                {/* encabezado con color fijo (no depende de Tailwind purge) */}
-                <thead className="bg-[#0b3359] text-white">
-                  <tr>
-                    <th className="px-4 py-2">ID</th>
-                    <th className="px-4 py-2">Producto</th>
-                    <th className="px-4 py-2">Precio Unitario</th>
-                    <th className="px-4 py-2">Stock</th>
-                    <th className="px-4 py-2">Acciones</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {rows.map((p, i) => (
-                    <tr key={p._id} className={i % 2 ? 'bg-gray-50' : ''}>
-                      <td className="p-3 font-mono">{shortId(p._id)}</td>
-                      <td className="p-3">{p.name}</td>
-                      <td className="p-3">{money(p.price)}</td>
-                      <td className="p-3">{p.countInStock ?? p.stock ?? 0}</td>
-                      <td className="p-3">
-                        <button
-                          onClick={() => navigate(`/admin/products/${p._id}`)}
-                          className="px-3 py-1 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition"
-                        >
-                          Editar
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm table-auto">
+                  {/*
+                    FORZAMOS el color con style inline como respaldo: el inline-style
+                    tiene prioridad sobre clases que puedan reaparecer por otros scripts/CSS.
+                  */}
+                  <thead style={{ backgroundColor: '#0b3359', color: '#ffffff' }}>
+                    <tr>
+                      <th className="px-4 py-2 text-left">ID</th>
+                      <th className="px-4 py-2 text-left">Producto</th>
+                      <th className="px-4 py-2 text-left">Precio Unitario</th>
+                      <th className="px-4 py-2 text-left">Stock</th>
+                      <th className="px-4 py-2 text-left">Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+
+                  <tbody>
+                    {rows.map((p, i) => (
+                      <tr key={p._id} className={i % 2 ? 'bg-gray-50' : ''}>
+                        <td className="p-3 font-mono">{shortId(p._id)}</td>
+                        <td className="p-3">{p.name}</td>
+                        <td className="p-3">{money(p.price)}</td>
+                        <td className="p-3">{p.countInStock ?? p.stock ?? 0}</td>
+                        <td className="p-3">
+                          <button
+                            onClick={() => navigate(`/admin/products/${p._id}`)}
+                            className="px-3 py-1 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition"
+                          >
+                            Editar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
