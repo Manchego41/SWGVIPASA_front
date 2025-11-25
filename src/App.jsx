@@ -12,7 +12,7 @@ import PrivateRoute from "./components/PrivateRoute";
 import AdminLayout from "./layouts/AdminLayout";
 
 import Home from "./pages/Home";
-// Contacto eliminado: ahora el contacto está dentro de Home
+// import Contacto removed on purpose earlier — contact is now inside Home
 import Login from "./pages/Login";
 import Cart from "./pages/Cart";
 import Profile from "./pages/Profile";
@@ -34,20 +34,29 @@ import SupportWidget from "./components/SupportWidget";
 function AppInner() {
   const location = useLocation();
 
-  // Visible en páginas públicas; oculto en /admin y /login
+  // Rutas en las que queremos OCULTAR la barra pública (Navbar) y el padding superior:
+  // - /admin (todo lo que empiece por /admin)
+  // - /login
+  // Si necesitas añadir otras rutas (ej: /register) agrégalas aquí.
   const hideOn = [/^\/admin\b/, /^\/login\b/];
-  const showSupport = !hideOn.some((rx) => rx.test(location.pathname));
+
+  // Si alguna regex coincide, ocultamos Navbar + MiniCart + padding superior + SupportWidget
+  const hideLayout = hideOn.some((rx) => rx.test(location.pathname));
+  const showNavbar = !hideLayout;
+  const showMiniCart = !hideLayout;
+  const showSupport = !hideLayout;
 
   return (
     <>
-      <Navbar />
-      <MiniCartDrawer />
+      {showNavbar && <Navbar />}
+      {showMiniCart && <MiniCartDrawer />}
 
-      <div className="pt-16">
+      {/* Solo añadimos el padding-top cuando el Navbar está visible */}
+      <div className={showNavbar ? "pt-16" : ""}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/catalogo" element={<Catalogo />} />
-          {/* /contacto eliminado: contenido integrado en Home */}
+          {/* La ruta /contacto fue removida (contacto integrado en Home) */}
           <Route path="/login" element={<Login />} />
 
           <Route
