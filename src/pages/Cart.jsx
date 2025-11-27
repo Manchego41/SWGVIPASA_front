@@ -33,10 +33,42 @@ export default function Cart() {
   const handleConfirmPayment = async (method) => {
     try {
       setPaying(true);
-      await API.post("/cart/checkout-local", { method });
+      const { data } = await API.post("/cart/checkout-local", { method });
+
+      // refrescar carrito
       await fetchCart();
       setShowModal(false);
-      alert(`Compra registrada correctamente. Método: ${method.toUpperCase()}`);
+
+      // Si hay receiptId -> abrir nueva ventana y mostrar QR y link de descarga
+      if (data?.receiptId) {
+        try {
+          const r = await API.get(`/cart/receipts/${data.receiptId}`);
+          const receipt = r.data;
+          const win = window.open('', '_blank');
+
+          // Nota: asumo que tu cliente sirve proxy en /api -> por eso uso full relative path para descarga
+          const downloadUrl = `/api/cart/receipts/${receipt._id}/download`;
+
+          win.document.write(`
+            <div style="font-family: Arial, Helvetica, sans-serif; padding:20px;">
+              <h2>Boleta: ${receipt.code}</h2>
+              <p><strong>Total:</strong> S/ ${Number(receipt.total || 0).toFixed(2)}</p>
+              <div style="margin:20px 0;">
+                <img src="${receipt.qrDataUrl}" alt="QR boleta" style="max-width:320px;"/>
+              </div>
+              <p><a href="${downloadUrl}" target="_blank" rel="noopener">Descargar QR (PNG)</a></p>
+              <p style="color:#666; font-size:12px;">Si no ves la imagen, verifica que el backend responde en /api/cart/receipts/:id</p>
+            </div>
+          `);
+          win.document.close();
+        } catch (err) {
+          // si falla obtener receipt, al menos avisamos
+          console.warn(err);
+          alert('Compra registrada correctamente. (No se pudo abrir la boleta).');
+        }
+      } else {
+        alert(`Compra registrada correctamente. Método: ${method.toUpperCase()}`);
+      }
     } catch (e) {
       console.error(e);
       alert(e?.response?.data?.message || "No se pudo registrar la compra. Revisa la consola.");

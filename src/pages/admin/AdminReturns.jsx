@@ -17,7 +17,6 @@ export default function AdminReturns() {
   const auth = authUser?.token ? { headers: { Authorization: `Bearer ${authUser.token}` } } : {};
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [msgById, setMsgById] = useState({});
   const [err, setErr] = useState('');
 
   const load = async () => {
@@ -35,29 +34,11 @@ export default function AdminReturns() {
 
   const setStatus = async (id, status) => {
     try {
-      // si la RMA actual está cancelada, el backend rechazará; aquí optimizamos deshabilitando botones
-      const target = rows.find(x => x._id === id);
-      if (target && target.status === 'canceled') {
-        return alert('Esta solicitud fue cancelada por el cliente y no puede ser modificada.');
-      }
-
       await API.patch(`/returns/${id}/status`, { status }, auth);
       // refrescar lista
       await load();
     } catch (e) {
       alert(e?.response?.data?.message || 'Error al cambiar estado');
-    }
-  };
-
-  const sendMessage = async (id) => {
-    const message = (msgById[id] || '').trim();
-    if (!message) return alert('Escribe un mensaje antes de enviar.');
-    try {
-      await API.post(`/returns/${id}/message`, { message }, auth);
-      setMsgById(prev => ({ ...prev, [id]: '' }));
-      alert('Mensaje enviado');
-    } catch (e) {
-      alert(e?.response?.data?.message || 'Error enviando mensaje');
     }
   };
 
@@ -70,9 +51,7 @@ export default function AdminReturns() {
       {rows.map(r => {
         const borderClass = r.status === 'approved' ? 'border-green-300' :
                             r.status === 'rejected' ? 'border-red-300' :
-                            r.status === 'canceled' ? 'border-gray-300 opacity-80' : 'border-gray-200';
-
-        const isCanceled = r.status === 'canceled';
+                            r.status === 'canceled' ? 'border-gray-300' : 'border-gray-200';
 
         return (
           <div key={r._id} className={`border rounded p-3 bg-white ${borderClass}`}>
@@ -91,6 +70,27 @@ export default function AdminReturns() {
                     </div>
                   ))}
                 </div>
+
+                {/* Mostrar motivo de devolución (mensaje del cliente) */}
+                <div className="mt-3">
+                  <div className="text-sm font-medium">Motivo del cliente</div>
+                  <div className="text-sm text-gray-700 mt-1">{r.reason || '—'}</div>
+                </div>
+
+                {/* Mostrar notas internas del admin si existen */}
+                {Array.isArray(r.adminNote) && r.adminNote.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-sm font-medium">Notas internas</div>
+                    <div className="text-sm text-gray-700 mt-1">
+                      {r.adminNote.map((n, idx) => (
+                        <div key={idx} className="mb-1">
+                          <div className="text-xs text-gray-500">{new Date(n.at).toLocaleString()}</div>
+                          <div>{n.text}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* resumen derecho */}
@@ -102,31 +102,19 @@ export default function AdminReturns() {
             </div>
 
             <div className="mt-3 flex flex-wrap gap-2">
-              {/* ADMIN: solo 3 botones permitidos; deshabilitados si la RMA está cancelada */}
+              {/* ADMIN: solo 3 botones permitidos. Si está cancelado no permitir cambios. */}
               {['processing','approved','rejected'].map(s => (
                 <button
                   key={s}
-                  disabled={isCanceled}
-                  className={`px-3 py-1 border rounded ${r.status === s ? 'bg-gray-100' : ''} ${isCanceled ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  onClick={() => setStatus(r._id, s)}
+                  className={`px-3 py-1 border rounded ${r.status === s ? 'bg-gray-100' : ''} ${r.status === 'canceled' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={() => r.status !== 'canceled' && setStatus(r._id, s)}
+                  disabled={r.status === 'canceled'}
                 >
                   {STATUS_LABEL[s]}
                 </button>
               ))}
             </div>
 
-            <div className="mt-3 flex gap-2">
-              <input
-                className="border rounded px-2 py-1 flex-1"
-                placeholder="Mensaje para el cliente…"
-                value={msgById[r._id] || ''}
-                onChange={(e) => setMsgById(prev => ({ ...prev, [r._id]: e.target.value }))}
-                disabled={false}
-              />
-              <button className="px-3 py-1 bg-blue-600 text-white rounded" onClick={() => sendMessage(r._id)}>
-                Enviar correo
-              </button>
-            </div>
           </div>
         );
       })}
